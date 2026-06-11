@@ -3,23 +3,30 @@ import { exchangeCode } from '$lib/oauth.js';
 import { redirectBase, mustEnv } from '$lib/env.js';
 import { saveToken } from '$lib/blob.js';
 import { tokenPath } from '$lib/tokens.js';
-import { authEntry, flashAuthDebug, logAuth, serializeError } from '$lib/auth/verbose.js';
+import { log, LOG_TYPE, authEntry, serializeError } from '$lib/logger.js';
+import { flashAuthDebug } from '$lib/auth/verbose.js';
+
+const fnLog = log.child({ provider: 'linkedin', functionName: 'linkedin/callback/+server.js:GET' });
 
 export async function GET({ url, cookies }) {
+  const stepLog = fnLog.child({ functionName: 'GET', phase: 'linkedin:callback:start' });
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
-  if (!code || state !== cookies.get('linkedin_oauth_state')) {
+  const stored = cookies.get('linkedin_oauth_state');
+
+  if (!code || state !== stored) {
     const invalid = authEntry('failed', {
       hasCode: Boolean(code),
-      stateMatch: state === cookies.get('linkedin_oauth_state'),
+      stateMatch: state === stored,
       error: 'linkedin_auth_failed',
     });
-    logAuth('linkedin', 'callback:invalid', invalid);
+    stepLog.error({ type: LOG_TYPE.STATE_MISMATCH, functionName: 'GET' }, 'LinkedIn callback invalid state/code');
     flashAuthDebug(cookies, 'linkedin', invalid);
     throw redirect(303, '/?error=linkedin_auth_failed');
   }
 
   try {
+    stepLog.info({ functionName: 'GET', phase: 'exchange:start' }, 'Starting LinkedIn exchangeCode');
     const tokenData = await exchangeCode({
       tokenUrl: 'https://www.linkedin.com/oauth/v2/accessToken',
       body: {
@@ -31,6 +38,7 @@ export async function GET({ url, cookies }) {
       },
     });
 
+    stepLog.info({ functionName: 'GET', phase: 'user:fetch:start' }, 'Fetching LinkedIn userinfo');
     const userRes = await fetch('https://api.linkedin.com/v2/userinfo', {
       headers: { Authorization: `Bearer ${tokenData.access_token}` },
     });
@@ -38,15 +46,25 @@ export async function GET({ url, cookies }) {
     const account = user.preferred_username || user.name || user.sub;
     tokenData.author_urn = `urn:li:person:${user.sub}`;
 
-    await saveToken(tokenPath('linkedin', account), tokenData);
+    const pathname = tokenPath('linkedin', account);
+    stepLog.info({ functionName: 'GET', phase: 'blob:save:start', pathname }, 'Saving LinkedIn token');
+    await saveToken(pathname, tokenData);
     cookies.delete('linkedin_oauth_state', { path: '/' });
 
-    logAuth('linkedin', 'callback:success', authEntry('success', { account }));
+    stepLog.info({ functionName: 'GET', phase: 'callback:success', account }, 'LinkedIn connect complete');
     throw redirect(303, '/?connected=linkedin');
   } catch (err) {
     if (err?.status === 303) throw err;
-    const failed = authEntry('failed', { error: serializeError(err) });
-    logAuth('linkedin', 'callback:failed', failed);
+    const errInfo = serializeError(err, 'GET');
+    stepLog.error(
+      {
+        type: LOG_TYPE.OAUTH_EXCHANGE_ERROR,
+        functionName: 'GET',
+        err: errInfo,
+      },
+      'LinkedIn callback failed',
+    );
+    const failed = authEntry('failed', { error: errInfo });
     flashAuthDebug(cookies, 'linkedin', failed);
     throw redirect(303, '/?error=linkedin_auth_failed');
   }

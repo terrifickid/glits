@@ -3,24 +3,29 @@ import { secretKeyFromEnv } from '$lib/nostr/keys.js';
 import { mustEnv } from '$lib/env.js';
 import { loadToken, saveToken } from '$lib/blob.js';
 import { tokenPath } from '$lib/tokens.js';
-import { authEntry, logAuth, serializeError } from '$lib/auth/verbose.js';
+import { log, LOG_TYPE, authEntry, serializeError } from '$lib/logger.js';
+
+const fnLog = log.child({ provider: 'nostr', functionName: 'nostr/wait/+server.js:GET' });
 
 export const config = {
   maxDuration: 60,
 };
 
 export async function GET({ url }) {
+  const stepLog = fnLog.child({ functionName: 'GET', phase: 'nostr:wait:start' });
   const session = url.searchParams.get('session');
   if (!session) {
-    logAuth('nostr', 'wait:invalid', authEntry('failed', { error: 'missing session' }));
+    stepLog.error({ type: LOG_TYPE.VALIDATION_ERROR, functionName: 'GET' }, 'Nostr wait invalid: missing session');
     return new Response('missing session', { status: 400 });
   }
 
   let pending;
   try {
+    stepLog.info({ functionName: 'GET', phase: 'nostr:wait:load:pending' }, 'Loading pending for wait');
     pending = await loadToken(`nostr-pending/${session}.json`);
   } catch (err) {
-    logAuth('nostr', 'wait:expired', authEntry('failed', { session, error: serializeError(err) }));
+    const errInfo = serializeError(err, 'GET');
+    stepLog.error({ type: LOG_TYPE.NOSTR_DELEGATION_ERROR, functionName: 'GET', err: errInfo }, 'Nostr wait pending expired/load failed');
     return new Response('session expired', { status: 404 });
   }
 
@@ -35,10 +40,13 @@ export async function GET({ url }) {
   });
 
   try {
+    stepLog.info({ functionName: 'GET', phase: 'nostr:wait:bunker:start' }, 'Calling bunker.waitForConnect');
     const { clientPubkey } = await bunker.waitForConnect(55_000);
     const account = pending.user_pubkey.slice(0, 12);
 
-    await saveToken(tokenPath('nostr', account), {
+    const finalPath = tokenPath('nostr', account);
+    stepLog.info({ functionName: 'GET', phase: 'nostr:wait:blob:save:start', finalPath }, 'Saving final Nostr delegated token');
+    await saveToken(finalPath, {
       user_pubkey: pending.user_pubkey,
       user_npub: pending.user_npub,
       delegated_nsec: pending.user_nsec,
@@ -49,10 +57,18 @@ export async function GET({ url }) {
       auth: 'nip46-bunker',
     });
 
-    logAuth('nostr', 'wait:success', authEntry('success', { session, npub: pending.user_npub }));
+    stepLog.info({ functionName: 'GET', phase: 'nostr:wait:success' }, 'Nostr delegation wait success');
     return Response.json({ ok: true, npub: pending.user_npub });
   } catch (err) {
-    logAuth('nostr', 'wait:failed', authEntry('failed', { session, error: serializeError(err) }));
+    const errInfo = serializeError(err, 'GET');
+    stepLog.error(
+      {
+        type: LOG_TYPE.NOSTR_DELEGATION_ERROR,
+        functionName: 'GET',
+        err: errInfo,
+      },
+      'Nostr wait failed',
+    );
     return Response.json({ error: err.message || 'connect failed' }, { status: 408 });
   } finally {
     bunker.close();

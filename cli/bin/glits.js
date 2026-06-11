@@ -4,6 +4,7 @@ import 'dotenv/config';
 import { Command } from 'commander';
 import { createCommand } from '../src/commands/create.js';
 import { listCommand } from '../src/commands/list.js';
+import { log, ERROR_TYPE } from '../src/lib/logger.js';
 
 const program = new Command();
 
@@ -11,6 +12,45 @@ program
   .name('glits')
   .description('Social media post queue and publishing CLI')
   .version('0.1.0');
+
+// Global handlers per log-example.js
+process.on('uncaughtException', (err, origin) => {
+  log.error({ type: ERROR_TYPE.UNCAUGHT_EXCEPTION, err, origin, stack: err?.stack }, 'Uncaught exception');
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  log.error({ type: ERROR_TYPE.UNHANDLED_REJECTION, promise, reason, stack: reason && reason.stack }, 'Unhandled rejection');
+  process.exit(1);
+});
+
+// Global strong error logging following log-example.js pattern.
+// These ensure we never lose uncaught errors; they are logged with full context before exit.
+process.on('uncaughtException', (err, origin) => {
+  log.error(
+    {
+      type: ERROR_TYPE.UNCAUGHT_EXCEPTION,
+      err,
+      origin,
+      stack: err?.stack,
+    },
+    'Uncaught exception',
+  );
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  log.error(
+    {
+      type: ERROR_TYPE.UNHANDLED_REJECTION,
+      promise,
+      reason,
+      stack: reason && reason.stack,
+    },
+    'Unhandled rejection',
+  );
+  process.exit(1);
+});
 
 program
   .command('create')
@@ -38,7 +78,20 @@ program
   .option('--dry-run', 'Validate without posting')
   .action(async (opts) => {
     const { sendCommand } = await import('../src/commands/send.js');
-    return sendCommand(opts);
+    try {
+      return await sendCommand(opts);
+    } catch (err) {
+      log.error(
+        {
+          type: ERROR_TYPE.SEND_FAILED,
+          functionName: 'send action',
+          err,
+          opts: { ...opts, queue: opts.queue }, // avoid any secrets
+        },
+        'Top-level send command error',
+      );
+      throw err; // let global handler also fire if needed, or rethrow for commander
+    }
   });
 
 program.parse();

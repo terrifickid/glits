@@ -3,15 +3,26 @@ import { list, head } from '@vercel/blob';
 const TOKEN_PREFIX = 'tokens/';
 
 export async function listTokenBlobs() {
-  const { blobs } = await list({ prefix: TOKEN_PREFIX });
-  return blobs;
+  try {
+    const { blobs } = await list({ prefix: TOKEN_PREFIX });
+    return blobs;
+  } catch (err) {
+    // Enrich so logger in callers sees full Blob error details
+    err.isBlobListError = true;
+    err.prefix = TOKEN_PREFIX;
+    throw err;
+  }
 }
 
 export async function getTokenBlob(pathname) {
   const meta = await head(pathname);
   const res = await fetch(meta.downloadUrl);
   if (!res.ok) {
-    throw new Error(`Failed to read token ${pathname}: ${res.status}`);
+    const err = new Error(`Failed to read token ${pathname}: ${res.status}`);
+    err.status = res.status;
+    err.pathname = pathname;
+    err.response = { status: res.status };
+    throw err;
   }
   return JSON.parse(await res.text());
 }

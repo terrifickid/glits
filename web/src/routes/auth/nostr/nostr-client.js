@@ -1,4 +1,6 @@
-import { logAuthClient, logServerResponse } from '$lib/auth/client-log.js';
+import { log, LOG_TYPE } from '$lib/logger.js';
+
+const fnLog = log.child({ provider: 'nostr', functionName: 'nostr-client.js:startNostrPolling' });
 
 export function startNostrPolling(session, onUpdate) {
   if (!session) return () => {};
@@ -6,7 +8,8 @@ export function startNostrPolling(session, onUpdate) {
   let cancelled = false;
 
   const poll = async () => {
-    logAuthClient('nostr', { phase: 'poll:start', session });
+    const stepLog = fnLog.child({ functionName: 'poll', phase: 'nostr:client:poll:start' });
+    stepLog.info({ session }, 'Starting Nostr client polling for delegation result');
 
     while (!cancelled) {
       try {
@@ -14,7 +17,7 @@ export function startNostrPolling(session, onUpdate) {
         const body = await res.json().catch(() => ({}));
 
         if (body.ok) {
-          logAuthClient('nostr', { phase: 'poll:success', npub: body.npub });
+          stepLog.info({ phase: 'nostr:client:poll:success', npub: body.npub }, 'Nostr polling success, redirecting');
           window.location.href = '/?connected=nostr';
           return;
         }
@@ -22,12 +25,28 @@ export function startNostrPolling(session, onUpdate) {
         if (res.status === 408) continue;
 
         const error = body.error || 'Connection failed';
-        logServerResponse('nostr', { phase: 'failed', error, status: res.status, body });
+        stepLog.error(
+          {
+            type: LOG_TYPE.NOSTR_DELEGATION_ERROR,
+            functionName: 'poll',
+            error,
+            status: res.status,
+            body,
+          },
+          'Nostr polling failed',
+        );
         onUpdate({ status: 'error', error });
         return;
       } catch (err) {
         const error = err.message || 'Connection failed';
-        logServerResponse('nostr', { phase: 'failed', error, err });
+        stepLog.error(
+          {
+            type: LOG_TYPE.NOSTR_DELEGATION_ERROR,
+            functionName: 'poll',
+            err: { message: error },
+          },
+          'Nostr polling exception',
+        );
         onUpdate({ status: 'error', error });
         return;
       }

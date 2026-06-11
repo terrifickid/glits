@@ -6,11 +6,15 @@ import { mustEnv } from '$lib/env.js';
 import { saveToken } from '$lib/blob.js';
 import { secretKeyFromEnv, createPostingKey } from '$lib/nostr/keys.js';
 import { parseRelays } from '$lib/nostr/relays.js';
-import { authEntry, logAuth, serializeError } from '$lib/auth/verbose.js';
+import { log, LOG_TYPE, authEntry, serializeError } from '$lib/logger.js';
+
+const fnLog = log.child({ provider: 'nostr', functionName: 'nostr/+page.server.js:load' });
 
 export async function load({ url }) {
+  const stepLog = fnLog.child({ functionName: 'load', phase: 'nostr:load:start' });
   const session = url.searchParams.get('session');
   if (session) {
+    stepLog.debug({ phase: 'nostr:load:polling' }, 'Nostr polling mode');
     return { polling: true, session };
   }
 
@@ -22,6 +26,7 @@ export async function load({ url }) {
   const relays = parseRelays(env.NOSTR_RELAYS);
 
   try {
+    stepLog.info({ functionName: 'load', phase: 'nostr:pending:save:start', sessionId }, 'Saving Nostr pending session to Blob');
     await saveToken(`nostr-pending/${sessionId}.json`, {
       connect_secret: connectSecret,
       user_nsec: posting.nsec,
@@ -30,12 +35,14 @@ export async function load({ url }) {
       bunker_pubkey: bunkerPubkey,
       relays,
     });
+    stepLog.info({ functionName: 'load', phase: 'nostr:pending:save:success' }, 'Nostr pending saved');
   } catch (err) {
-    logAuth('nostr', 'session:failed', authEntry('failed', { error: serializeError(err) }));
+    const errInfo = serializeError(err, 'load');
+    stepLog.error({ type: LOG_TYPE.BLOB_ERROR, functionName: 'load', err: errInfo }, 'Nostr pending Blob save failed');
     throw err;
   }
 
-  logAuth('nostr', 'session:start', authEntry('session:start', { session: sessionId, npub: posting.npub }));
+  stepLog.info({ functionName: 'load', phase: 'nostr:session:start', session: sessionId, npub: posting.npub }, 'Nostr session start');
 
   return {
     session: sessionId,

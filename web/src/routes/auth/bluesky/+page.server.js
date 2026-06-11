@@ -2,7 +2,9 @@ import { fail } from '@sveltejs/kit';
 import { BskyAgent } from '@atproto/api';
 import { saveToken } from '$lib/blob.js';
 import { tokenPath } from '$lib/tokens.js';
-import { authEntry, logAuth, serializeError } from '$lib/auth/verbose.js';
+import { log, LOG_TYPE, serializeError, authEntry } from '$lib/logger.js';
+
+const fnLog = log.child({ provider: 'bluesky', functionName: 'bluesky/+page.server.js:default' });
 
 export const actions = {
   default: async ({ request }) => {
@@ -11,41 +13,40 @@ export const actions = {
     const password = String(form.get('password') || '').trim();
     const service = String(form.get('service') || 'https://bsky.social').trim() || 'https://bsky.social';
 
-    const verbose = [
-      authEntry('request', {
-        handle,
-        service,
+    const stepLog = fnLog.child({ phase: 'bluesky:action:start' });
+    stepLog.info(
+      {
+        functionName: 'default',
+        handlePresent: Boolean(handle),
         passwordLength: password.length,
-        hasHandle: Boolean(handle),
-        hasPassword: Boolean(password),
-      }),
-    ];
-    logAuth('bluesky', 'request', verbose[0]);
+        service,
+      },
+      'Bluesky login action started',
+    );
 
     if (!handle || !password) {
+      stepLog.error({ type: LOG_TYPE.VALIDATION_ERROR, functionName: 'default' }, 'Missing handle or password');
       return fail(400, {
         error: 'Handle and app password are required',
         handle,
         service,
-        verbose,
       });
     }
 
     try {
       const agent = new BskyAgent({ service });
-      const loginStart = authEntry('login:start', { handle, service });
-      verbose.push(loginStart);
-      logAuth('bluesky', 'login:start', loginStart);
+      stepLog.info({ functionName: 'default', phase: 'bluesky:login:start' }, 'Starting Bluesky login');
 
       const loginResult = await agent.login({ identifier: handle, password });
-      const loginSuccess = authEntry('login:success', {
-        handle: agent.session?.handle,
-        did: agent.session?.did,
-        loginResult,
-        sessionKeys: agent.session ? Object.keys(agent.session) : [],
-      });
-      verbose.push(loginSuccess);
-      logAuth('bluesky', 'login:success', loginSuccess);
+      stepLog.info(
+        {
+          functionName: 'default',
+          phase: 'bluesky:login:success',
+          handle: agent.session?.handle,
+          did: agent.session?.did,
+        },
+        'Bluesky login succeeded',
+      );
 
       const tokenData = {
         ...agent.session,
@@ -54,35 +55,32 @@ export const actions = {
       };
 
       const pathname = tokenPath('bluesky', agent.session.handle || handle);
-      const blobStart = authEntry('blob:save:start', { pathname });
-      verbose.push(blobStart);
-      logAuth('bluesky', 'blob:save:start', blobStart);
+      stepLog.info({ functionName: 'default', phase: 'bluesky:blob:save:start', pathname }, 'Starting Bluesky token Blob save');
 
       await saveToken(pathname, tokenData);
-      const blobSuccess = authEntry('blob:save:success', { pathname });
-      verbose.push(blobSuccess);
-      logAuth('bluesky', 'blob:save:success', blobSuccess);
+      stepLog.info({ functionName: 'default', phase: 'bluesky:blob:save:success', pathname }, 'Bluesky token Blob save succeeded');
 
       return {
         success: true,
         handle: agent.session.handle || handle,
-        verbose,
       };
     } catch (err) {
-      const failed = authEntry('failed', {
-        handle,
-        service,
-        passwordLength: password.length,
-        error: serializeError(err),
-      });
-      verbose.push(failed);
-      logAuth('bluesky', 'failed', failed);
+      const errInfo = serializeError(err, 'default');
+      stepLog.error(
+        {
+          type: LOG_TYPE.OAUTH_EXCHANGE_ERROR,
+          functionName: 'default',
+          err: errInfo,
+          handle,
+          service,
+        },
+        'Bluesky login or blob save failed',
+      );
 
       return fail(401, {
         error: err.message || 'Login failed',
         handle,
         service,
-        verbose,
       });
     }
   },

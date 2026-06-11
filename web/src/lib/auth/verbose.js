@@ -1,35 +1,33 @@
+import { log, LOG_TYPE, serializeError as newSerializeError } from '$lib/logger.js';
+
 export function serializeError(err) {
-  if (!err || typeof err !== 'object') {
-    return { message: String(err) };
-  }
-
-  const out = {
-    message: err.message,
-    name: err.name,
-    stack: err.stack,
-  };
-
-  for (const key of [
-    'status',
-    'statusCode',
-    'error',
-    'headers',
-    'data',
-    'response',
-    'cause',
-    'code',
-  ]) {
-    if (err[key] !== undefined) out[key] = err[key];
-  }
-
-  if (err.response?.data !== undefined) out.responseData = err.response.data;
-  if (err.response?.status !== undefined) out.responseStatus = err.response.status;
-
-  return out;
+  // Delegate to new for full functionName support etc.
+  return newSerializeError(err);
 }
 
 export function logAuth(provider, phase, payload) {
-  console.error(`[glits/${provider}] ${phase}`, JSON.stringify(payload, null, 2));
+  // Use new structured logger for server diagnostic output
+  const stepLog = log.child({ provider, functionName: 'logAuth', phase });
+  if (payload?.error || phase.includes('failed') || phase.includes('error')) {
+    stepLog.error(
+      {
+        type: LOG_TYPE.OAUTH_EXCHANGE_ERROR,
+        functionName: 'logAuth',
+        phase,
+        ...payload,
+      },
+      `[glits/${provider}] ${phase}`,
+    );
+  } else {
+    stepLog.info(
+      {
+        functionName: 'logAuth',
+        phase,
+        ...payload,
+      },
+      `[glits/${provider}] ${phase}`,
+    );
+  }
 }
 
 export function authEntry(phase, data = {}) {

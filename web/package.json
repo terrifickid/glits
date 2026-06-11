@@ -18,6 +18,7 @@
   "dependencies": {
     "@atproto/api": "^0.14.15",
     "@vercel/blob": "^0.27.3",
-    "nostr-tools": "^2.23.5"
+    "nostr-tools": "^2.23.5",
+    "pino": "^9.6.0"
   }
 }
