@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import { exchangeMetaCode, getThreadsUserId } from '$lib/auth/meta.js';
 import { redirectBase, mustEnv } from '$lib/env.js';
-import { saveToken } from '$lib/blob.js';
+import { saveToken, validateBlobPermissions } from '$lib/blob.js';
 import { tokenPath } from '$lib/tokens.js';
 import { log, LOG_TYPE, authEntry, serializeError } from '$lib/logger.js';
 import { flashAuthDebug } from '$lib/auth/verbose.js';
@@ -38,6 +38,10 @@ export async function GET({ url, cookies }) {
 
     const pathname = tokenPath('threads', account);
     stepLog.info({ functionName: 'GET', phase: 'blob:save:start', pathname }, 'Saving Threads token');
+
+    // Validate blob connection and write permission as first step before saving token
+    await validateBlobPermissions();
+
     await saveToken(pathname, { ...tokenData, ...threadsUser });
 
     cookies.delete('meta_oauth_state_threads', { path: '/' });

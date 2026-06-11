@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import { exchangeCode } from '$lib/oauth.js';
 import { redirectBase, mustEnv } from '$lib/env.js';
-import { saveToken } from '$lib/blob.js';
+import { saveToken, validateBlobPermissions } from '$lib/blob.js';
 import { tokenPath } from '$lib/tokens.js';
 import { log, LOG_TYPE, authEntry, serializeError } from '$lib/logger.js';
 import { flashAuthDebug } from '$lib/auth/verbose.js';
@@ -48,6 +48,10 @@ export async function GET({ url, cookies }) {
 
     const pathname = tokenPath('linkedin', account);
     stepLog.info({ functionName: 'GET', phase: 'blob:save:start', pathname }, 'Saving LinkedIn token');
+
+    // Validate blob connection and write permission as first step before saving token
+    await validateBlobPermissions();
+
     await saveToken(pathname, tokenData);
     cookies.delete('linkedin_oauth_state', { path: '/' });
 

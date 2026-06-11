@@ -1,7 +1,7 @@
 import { GlitsBunkerSession } from '$lib/nostr/bunker-session.js';
 import { secretKeyFromEnv } from '$lib/nostr/keys.js';
 import { mustEnv } from '$lib/env.js';
-import { loadToken, saveToken } from '$lib/blob.js';
+import { loadToken, saveToken, validateBlobPermissions } from '$lib/blob.js';
 import { tokenPath } from '$lib/tokens.js';
 import { log, LOG_TYPE, authEntry, serializeError } from '$lib/logger.js';
 
@@ -46,6 +46,10 @@ export async function GET({ url }) {
 
     const finalPath = tokenPath('nostr', account);
     stepLog.info({ functionName: 'GET', phase: 'nostr:wait:blob:save:start', finalPath }, 'Saving final Nostr delegated token');
+
+    // Validate blob connection and write permission as first step before saving token
+    await validateBlobPermissions();
+
     await saveToken(finalPath, {
       user_pubkey: pending.user_pubkey,
       user_npub: pending.user_npub,

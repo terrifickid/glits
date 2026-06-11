@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import { exchangeMetaCode, getFacebookPage } from '$lib/auth/meta.js';
 import { redirectBase, mustEnv } from '$lib/env.js';
-import { saveToken } from '$lib/blob.js';
+import { saveToken, validateBlobPermissions } from '$lib/blob.js';
 import { tokenPath } from '$lib/tokens.js';
 import { authEntry, flashAuthDebug, logAuth, serializeError } from '$lib/auth/verbose.js';
 
@@ -29,6 +29,9 @@ export async function GET({ url, cookies }) {
 
     const page = await getFacebookPage(tokenData.access_token);
     const account = page.page_name || page.page_id;
+    // Validate blob connection and write permission as first step before saving token
+    await validateBlobPermissions();
+
     await saveToken(tokenPath('facebook', account), { ...tokenData, ...page });
 
     cookies.delete('meta_oauth_state_facebook', { path: '/' });

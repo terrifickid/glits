@@ -3,7 +3,7 @@ import { toBunkerURL } from 'nostr-tools/nip46';
 import { getPublicKey } from 'nostr-tools/pure';
 import { env } from '$env/dynamic/private';
 import { mustEnv } from '$lib/env.js';
-import { saveToken } from '$lib/blob.js';
+import { saveToken, validateBlobPermissions } from '$lib/blob.js';
 import { secretKeyFromEnv, createPostingKey } from '$lib/nostr/keys.js';
 import { parseRelays } from '$lib/nostr/relays.js';
 import { log, LOG_TYPE, authEntry, serializeError } from '$lib/logger.js';
@@ -27,6 +27,10 @@ export async function load({ url }) {
 
   try {
     stepLog.info({ functionName: 'load', phase: 'nostr:pending:save:start', sessionId }, 'Saving Nostr pending session to Blob');
+
+    // Validate blob connection and write permission as first step before saving token
+    await validateBlobPermissions();
+
     await saveToken(`nostr-pending/${sessionId}.json`, {
       connect_secret: connectSecret,
       user_nsec: posting.nsec,

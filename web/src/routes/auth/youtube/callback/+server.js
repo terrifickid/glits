@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import { exchangeCode } from '$lib/oauth.js';
 import { redirectBase, mustEnv } from '$lib/env.js';
-import { saveToken } from '$lib/blob.js';
+import { saveToken, validateBlobPermissions } from '$lib/blob.js';
 import { tokenPath } from '$lib/tokens.js';
 import { authEntry, flashAuthDebug, logAuth, serializeError } from '$lib/auth/verbose.js';
 
@@ -37,6 +37,9 @@ export async function GET({ url, cookies }) {
     );
     const channel = await channelRes.json();
     const account = channel.items?.[0]?.snippet?.title || 'channel';
+
+    // Validate blob connection and write permission as first step before saving token
+    await validateBlobPermissions();
 
     await saveToken(tokenPath('youtube', account), tokenData);
     cookies.delete('google_oauth_state', { path: '/' });

@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import { redirectBase } from '$lib/env.js';
-import { saveToken } from '$lib/blob.js';
+import { saveToken, validateBlobPermissions } from '$lib/blob.js';
 import { tokenPath } from '$lib/tokens.js';
 import { authEntry, flashAuthDebug, logAuth, serializeError } from '$lib/auth/verbose.js';
 
@@ -59,6 +59,9 @@ export async function GET({ url, cookies }) {
     });
     const account = verifyRes.ok ? await verifyRes.json() : {};
     const name = account.username || 'user';
+
+    // Validate blob connection and write permission as first step before saving token
+    await validateBlobPermissions();
 
     await saveToken(tokenPath('mastodon', `${name}-${new URL(instance).hostname}`), tokenData);
 

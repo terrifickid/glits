@@ -1,9 +1,57 @@
-import { head, put } from '@vercel/blob';
+import { head, put, list, del } from '@vercel/blob';
 import { log, LOG_TYPE, serializeError } from '$lib/logger.js';
 
 const fnLog = log.child({ functionName: 'saveToken' });
 
+let _blobValidated = false;
+
+export async function validateBlobPermissions() {
+  if (_blobValidated) return;
+
+  const stepLog = fnLog.child({ phase: 'blob:validate' });
+
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    stepLog.error({ type: LOG_TYPE.BLOB_ERROR }, 'BLOB_READ_WRITE_TOKEN is not set');
+    throw new Error('BLOB_READ_WRITE_TOKEN is not set in the environment');
+  }
+
+  stepLog.info('Validating Vercel Blob connection and write permission');
+
+  try {
+    // Test read/list access
+    await list({ prefix: 'tokens/', limit: 1 });
+
+    // Test write permission using the exact same options as real saves
+    const testKey = `tokens/_validation_test_${Date.now()}.json`;
+    await put(testKey, JSON.stringify({ test: true, timestamp: new Date().toISOString() }), {
+      access: 'private',
+      allowOverwrite: true,
+      contentType: 'application/json',
+    });
+    await del(testKey);
+
+    stepLog.info(
+      { type: LOG_TYPE.BLOB_SAVE_SUCCESS },
+      'Vercel Blob connection and write permission validated successfully'
+    );
+    _blobValidated = true;
+  } catch (err) {
+    const errInfo = serializeError(err);
+    stepLog.error(
+      {
+        type: LOG_TYPE.BLOB_ERROR,
+        err: errInfo,
+      },
+      `Vercel Blob validation failed: ${err.message || 'unknown error'}`
+    );
+    throw new Error(`Failed to validate blob connection and write permission: ${err.message || 'unknown error'}`);
+  }
+}
+
 export async function saveToken(pathname, data) {
+  // First step: validate blob connection and write permission before any save
+  await validateBlobPermissions();
+
   const stepLog = fnLog.child({ phase: 'blob:save:start', pathname });
   stepLog.info(
     {
@@ -42,6 +90,9 @@ export async function saveToken(pathname, data) {
 const loadLog = log.child({ functionName: 'loadToken' });
 
 export async function loadToken(pathname) {
+  // Validate blob connection and permission when accessing blob
+  await validateBlobPermissions();
+
   const stepLog = loadLog.child({ phase: 'blob:load:start', pathname });
   stepLog.info('Starting Vercel Blob load for token');
 

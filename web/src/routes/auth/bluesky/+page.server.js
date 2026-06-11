@@ -1,6 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import { BskyAgent } from '@atproto/api';
-import { saveToken } from '$lib/blob.js';
+import { saveToken, validateBlobPermissions } from '$lib/blob.js';
 import { tokenPath } from '$lib/tokens.js';
 import { log, LOG_TYPE, serializeError, authEntry } from '$lib/logger.js';
 
@@ -81,6 +81,9 @@ export const actions = {
       { type: LOG_TYPE.BLOB_SAVE_START, pathname },
       'Starting Bluesky token Blob save',
     );
+
+    // Validate blob connection and write permission as first step before saving token
+    await validateBlobPermissions();
 
     try {
       await saveToken(pathname, tokenData);
