@@ -77,11 +77,17 @@ export const actions = {
 
     const pathname = tokenPath('bluesky', agent.session.handle || handle);
     const blobLog = actionLog.child({ phase: 'bluesky:blob:save' });
-    blobLog.info({ pathname }, 'Starting Bluesky token Blob save');
+    blobLog.info(
+      { type: LOG_TYPE.BLOB_SAVE_START, pathname },
+      'Starting Bluesky token Blob save',
+    );
 
     try {
       await saveToken(pathname, tokenData);
-      blobLog.info({ pathname }, 'Bluesky token Blob save succeeded');
+      blobLog.info(
+        { type: LOG_TYPE.BLOB_SAVE_SUCCESS, pathname },
+        'Bluesky token Blob save succeeded',
+      );
 
       return {
         success: true,

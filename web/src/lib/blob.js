@@ -5,7 +5,14 @@ const fnLog = log.child({ functionName: 'saveToken' });
 
 export async function saveToken(pathname, data) {
   const stepLog = fnLog.child({ phase: 'blob:save:start', pathname });
-  stepLog.info({ dataKeys: Object.keys(data || {}), hasAccessToken: !!data?.access_token }, 'Starting Vercel Blob private save for token');
+  stepLog.info(
+    {
+      type: LOG_TYPE.BLOB_SAVE_START,
+      dataKeys: Object.keys(data || {}),
+      hasAccessToken: !!data?.access_token,
+    },
+    'Starting Vercel Blob private save for token',
+  );
 
   try {
     await put(pathname, JSON.stringify(data), {
@@ -13,7 +20,10 @@ export async function saveToken(pathname, data) {
       allowOverwrite: true,
       contentType: 'application/json',
     });
-    stepLog.info({ phase: 'blob:save:success' }, 'Vercel Blob save succeeded');
+    stepLog.info(
+      { type: LOG_TYPE.BLOB_SAVE_SUCCESS, pathname },
+      'Vercel Blob save succeeded',
+    );
   } catch (err) {
     const serverError = err.message || 'Vercel Blob save failed';
     const errInfo = serializeError(err);
