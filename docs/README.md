@@ -8,6 +8,7 @@ This documentation covers design principles, architecture, configuration, usage,
 
 | Document | Description |
 |----------|-------------|
+| [Hermes skill](./hermes-skill.md) | Install via `hermes skills tap add` + `hermes skills install` |
 | [Principles](./principles.md) | Design philosophy, constraints, and non-goals |
 | [Architecture](./architecture.md) | System components, data flow, and repo layout |
 | [Usage](./usage.md) | End-to-end workflow and CLI commands |
