@@ -15,7 +15,7 @@ export async function tokensCommand(opts = {}) {
     tokens = await listAllTokens();
   } catch (err) {
     const msg = err?.isBlobListError || /blob/i.test(String(err))
-      ? 'Failed to list tokens from Vercel Blob. Is BLOB_READ_WRITE_TOKEN set and valid in the environment?'
+      ? 'Failed to list tokens from Vercel Blob. Is the required storage credential set and valid in the environment?'
       : `Error loading tokens: ${err.message || err}`;
     console.error(msg);
     if (opts.json) {
@@ -32,7 +32,7 @@ export async function tokensCommand(opts = {}) {
   if (!tokens.length) {
     console.log('No authorized tokens found.');
     console.log('Connect accounts using the glits web auth app (it writes the tokens to Vercel Blob).');
-    console.log('Then re-run this command (or send) with the same BLOB_READ_WRITE_TOKEN.');
+    console.log('Then re-run this command (or send) after ensuring the required storage credential is available to the skill.');
     return;
   }
 

@@ -5,8 +5,8 @@
 // Platform names must be lowercase and exactly match one of the supported values below.
 //
 // After editing, the CLI (create + send) will pick up the change on the next run.
-// In the hermes skill, edit the copy inside the installed skill directory
-// (usually ~/.hermes/skills/glits/glits.config.js or ${HERMES_SKILL_DIR}/glits.config.js).
+// For the hermes skill, edit the copy that lives next to the scripts (the skill
+// wrappers reference it via GLITS_CONFIG / ${HERMES_SKILL_DIR}).
 
 export default {
   platforms: [

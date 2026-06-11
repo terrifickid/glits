@@ -30,11 +30,11 @@ There are **two separate pieces** that share only one secret:
    - The web app performs OAuth (or credential) flows using the platform's client IDs/secrets.
    - On success it writes a **private token JSON blob** into Vercel Blob storage under the `tokens/` prefix.
    - Example blob keys: `tokens/alice.bsky.social-bluesky.json`, `tokens/myhandle-x.json`.
-   - The web app also needs `BLOB_READ_WRITE_TOKEN` (to write) + all the `*_CLIENT_*` / `META_APP_*` / `NOSTR_*` secrets in its Vercel environment.
+   - The web app also needs the shared storage credential (to write) + the various platform OAuth client secrets in its Vercel environment.
 
 2. **This skill / CLI** (what you are running now)
    - Only ever **reads** tokens at send time.
-   - Uses the exact same `BLOB_READ_WRITE_TOKEN` (from `~/.hermes/.env` + env passthrough) to call Vercel Blob `list({ prefix: 'tokens/' })` + fetch the matching ones.
+   - Uses the same storage credential (provided to the terminal environment) to discover and read the private token blobs at send time.
    - The CLI **never** creates, edits, or deletes tokens. There is no "login", "connect", or "auth" subcommand.
    - `glits.config.js` (in the installed skill directory) only controls **which platforms are enabled for create/send** — it has nothing to do with whether tokens exist.
 
@@ -48,7 +48,7 @@ There are **two separate pieces** that share only one secret:
 hermes skills install terrifickid/glits/glits
 ```
 
-Hermes will prompt for the required `BLOB_READ_WRITE_TOKEN` on first use and store it in `~/.hermes/.env`. You must also ensure `~/.hermes/config.yaml` passes the token through for the terminal toolset (see docs/hermes-skill.md in the repo for the exact stanza).
+Hermes prompts for the required secret on first use and makes it available to scripts run via the terminal toolset. (The skill declares the secret it needs in its frontmatter.)
 
 ## Config File — glits.config.js
 
@@ -56,10 +56,9 @@ Hermes will prompt for the required `BLOB_READ_WRITE_TOKEN` on first use and sto
 
 The CLI loads the config from the file next to the scripts inside the installed skill:
 
-- Path: `${HERMES_SKILL_DIR}/glits.config.js`
-- Conventional absolute location after `hermes skills install`: `~/.hermes/skills/glits/glits.config.js`
+- Path: `${HERMES_SKILL_DIR}/glits.config.js` (the file the skill's own wrapper scripts reference).
 
-This is the **only** copy that matters for hermes users. Do not edit files in a source checkout unless you are maintaining the skill itself.
+This is the copy that the installed skill uses. The skill scripts set `GLITS_CONFIG` to point at it automatically.
 
 The wrapper script (`glits.sh`) automatically does:
 
@@ -90,6 +89,7 @@ Full recommended template (with all platforms available, most commented out):
 // Controls which platforms create/send will act on.
 // Must be `export default { platforms: [...] }` (ES module syntax).
 // Use only the exact lowercase names listed below.
+// The skill's wrapper makes this file available at ${HERMES_SKILL_DIR}/glits.config.js .
 
 export default {
   platforms: [
@@ -132,55 +132,19 @@ export default {
 - `--platforms` override (create only): `create.sh --platforms bluesky,x --id ...` ignores the config file for that run and only creates files for the listed platforms. `send` will still apply the config file at send time (a queue file for a now-disabled platform will be skipped).
 - Empty or missing `platforms` array → `create` will error with "No platforms enabled in glits.config.js".
 
-**How an agent edits the config (via terminal / hermes)**
+**Editing the config (as an agent)**
 
-You have shell access. There is **no** `glits config edit` or similar subcommand — you edit the file directly with normal shell tools.
+The list of active platforms lives in `glits.config.js` next to the skill's scripts. The wrapper scripts set `GLITS_CONFIG` so the CLI always finds the right file; the conventional way to reach it from the terminal is `${HERMES_SKILL_DIR}/glits.config.js`.
 
-Recommended safe pattern (read → write clean version → verify):
-
-```bash
-# 1. Inspect current state
-cat "${HERMES_SKILL_DIR}/glits.config.js"
-
-# 2. Write the desired config (heredoc is reliable)
-cat > "${HERMES_SKILL_DIR}/glits.config.js" << 'EOF'
-export default {
-  platforms: [
-    'bluesky',
-    // 'x',
-    // 'mastodon',
-    // 'threads',
-    // 'instagram',
-    // 'linkedin',
-    // 'youtube',
-    // 'facebook',
-    // 'nostr',
-  ],
-};
-EOF
-
-# 3. Verify the write succeeded and is valid
-cat "${HERMES_SKILL_DIR}/glits.config.js"
-
-# 4. (Strongly recommended) Immediately check what tokens exist
-#    for the platforms you just enabled
-tokens.sh --json
-```
-
-Alternative editing techniques that work in the terminal environment:
-
-- `sed -i 's|// '\''bluesky'\''|'\''bluesky'\''|' "${HERMES_SKILL_DIR}/glits.config.js"` (uncomment)
-- `node -e ' ... fs.writeFileSync(...) '` for programmatic generation
-- Any editor that the environment provides (`vi`, `nano`, etc.) if interactive use is allowed.
-
-After editing, subsequent `create.sh` and `send.sh` (and `glits` invocations) will use the new list. No restart of anything is required.
+- View current settings: `cat "${HERMES_SKILL_DIR}/glits.config.js"`
+- To change the enabled platforms, overwrite the file with a valid `export default { platforms: [...] }` using ordinary shell commands from the terminal. Only enable platforms for which you already have connected accounts (check first with the tokens inspection command).
+- The CLI picks up the new list on the next `create` or `send` — no restart required.
 
 **Best practice for agents**
 
-- Always start by running `tokens.sh --json` to see what you actually have authorized tokens for.
-- Only enable platforms in the config for which you have at least one working token (otherwise `send` will create failed queue entries).
-- Keep most platforms commented out until the user has connected them on the web auth app. This prevents accidentally creating queue files for platforms that have no destination.
-- If you use `--platforms` on create for a one-off, still keep the main config file in a sane state for normal `send` runs.
+- Run the tokens inspection command first so you know which accounts actually exist before editing the config to enable their platforms.
+- Only list platforms that have at least one working token blob; otherwise `send` will produce failed entries for them.
+- Leave most platforms commented out until the corresponding accounts have been connected through the web auth flow. This avoids creating queue files with no destination.
 
 ## Commands
 
@@ -240,9 +204,9 @@ Internally the scripts call `glits.sh <subcommand>` which runs the bundled Node 
 
 ## Environment Variables
 
-- **Only `BLOB_READ_WRITE_TOKEN`** is required by this skill/CLI. It is used exclusively for **reading** token blobs and is prompted by Hermes.
-- All other secrets (`X_CLIENT_ID`, `META_APP_ID`, `GOOGLE_CLIENT_*`, `NOSTR_BUNKER_NSEC`, `OAUTH_REDIRECT_BASE`, etc.) are needed **only** by the web auth app (in its Vercel project settings) so that it can start the OAuth flows and exchange codes.
-- The web app and the CLI must use the **exact same** Vercel Blob store / token if you want the tokens written by the web to be visible to `send`.
+- The skill declares one required secret in its frontmatter (the Vercel Blob storage credential used for reading the private per-account tokens). Hermes prompts for it on install and surfaces it to the terminal environment for the skill's scripts.
+- All other secrets (platform OAuth client IDs/secrets, redirect base, Nostr bunker key, etc.) are needed **only** by the separate web auth app deployment so it can perform the initial OAuth connections and write the tokens.
+- The web app and this CLI skill must be configured against the **same** Blob store so that tokens written by the web are visible when the skill runs `send`.
 
 ## Pitfalls & Agent Guidance (IMPORTANT)
 

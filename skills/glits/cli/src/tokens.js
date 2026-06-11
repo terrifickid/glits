@@ -97,7 +97,7 @@ function summarizeToken(pathname, data) {
 /**
  * List ALL authorized tokens across every platform.
  * Returns an array of safe summary objects (no secrets).
- * Requires BLOB_READ_WRITE_TOKEN in the environment.
+ * Requires the skill's declared storage credential to be present in the environment.
  */
 export async function listAllTokens() {
   const blobs = await listTokenBlobs();
