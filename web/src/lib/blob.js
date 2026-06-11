@@ -28,6 +28,7 @@ export async function validateBlobPermissions() {
     await put(testKey, JSON.stringify({ test: true, timestamp: new Date().toISOString() }), {
       access: 'private',
       token: process.env.BLOB_READ_WRITE_TOKEN,
+      storeId: process.env.BLOB_STORE_ID,
       allowOverwrite: true,
       contentType: 'application/json',
     });
