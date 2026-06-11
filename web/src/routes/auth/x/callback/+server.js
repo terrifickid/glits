@@ -57,12 +57,26 @@ export async function GET({ url, cookies }) {
 
     tokenData.username = username;
     const pathname = tokenPath('x', username);
-    stepLog.info({ functionName: 'GET', phase: 'store:save:start', pathname }, 'Saving X token');
+    const storeLog = stepLog.child({ phase: 'x:store:save', pathname });
+    storeLog.info(
+      {
+        type: LOG_TYPE.STORE_SAVE_START,
+        pathname,
+        dataKeys: Object.keys(tokenData || {}),
+        hasAccessToken: !!tokenData?.access_token,
+        hasRefresh: !!tokenData?.refresh_token,
+      },
+      'Starting X token store save',
+    );
 
     // Validate store connection and write permission as first step before saving token
     await validateBlobPermissions();
 
     await saveToken(pathname, tokenData);
+    storeLog.info(
+      { type: LOG_TYPE.STORE_SAVE_SUCCESS, pathname },
+      'X token store save succeeded',
+    );
 
     cookies.delete('x_pkce_verifier', { path: '/' });
     cookies.delete('x_oauth_state', { path: '/' });

@@ -45,7 +45,17 @@ export async function GET({ url }) {
     const account = pending.user_pubkey.slice(0, 12);
 
     const finalPath = tokenPath('nostr', account);
-    stepLog.info({ functionName: 'GET', phase: 'nostr:wait:store:save:start', finalPath }, 'Saving final Nostr delegated token');
+    const storeLog = stepLog.child({ phase: 'nostr:wait:store:save', finalPath });
+    storeLog.info(
+      {
+        type: LOG_TYPE.STORE_SAVE_START,
+        pathname: finalPath,
+        dataKeys: ['user_pubkey', 'delegated_nsec', 'bunker_pubkey', 'client_pubkey', 'relays'],
+        hasDelegatedNsec: true,
+        account,
+      },
+      'Starting final Nostr delegated token store save',
+    );
 
     // Validate store connection and write permission as first step before saving token
     await validateBlobPermissions();
@@ -60,6 +70,10 @@ export async function GET({ url }) {
       connected_at: new Date().toISOString(),
       auth: 'nip46-bunker',
     });
+    storeLog.info(
+      { type: LOG_TYPE.STORE_SAVE_SUCCESS, pathname: finalPath },
+      'Nostr delegated token store save succeeded',
+    );
 
     stepLog.info({ functionName: 'GET', phase: 'nostr:wait:success' }, 'Nostr delegation wait success');
     return Response.json({ ok: true, npub: pending.user_npub });

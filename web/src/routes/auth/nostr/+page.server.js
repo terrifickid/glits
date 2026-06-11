@@ -26,12 +26,23 @@ export async function load({ url }) {
   const relays = parseRelays(env.NOSTR_RELAYS);
 
   try {
-    stepLog.info({ functionName: 'load', phase: 'nostr:pending:save:start', sessionId }, 'Saving Nostr pending session to store');
+    const pendingPath = `nostr-pending/${sessionId}.json`;
+    const storeLog = stepLog.child({ phase: 'nostr:pending:store:save', pendingPath });
+    storeLog.info(
+      {
+        type: LOG_TYPE.STORE_SAVE_START,
+        pathname: pendingPath,
+        dataKeys: ['connect_secret', 'user_nsec', 'user_pubkey', 'bunker_pubkey', 'relays'],
+        hasNsec: true,
+        sessionId,
+      },
+      'Starting Nostr pending session store save',
+    );
 
     // Validate store connection and write permission as first step before saving token
     await validateBlobPermissions();
 
-    await saveToken(`nostr-pending/${sessionId}.json`, {
+    await saveToken(pendingPath, {
       connect_secret: connectSecret,
       user_nsec: posting.nsec,
       user_pubkey: posting.pubkey,
@@ -39,7 +50,10 @@ export async function load({ url }) {
       bunker_pubkey: bunkerPubkey,
       relays,
     });
-    stepLog.info({ functionName: 'load', phase: 'nostr:pending:save:success' }, 'Nostr pending saved');
+    storeLog.info(
+      { type: LOG_TYPE.STORE_SAVE_SUCCESS, pathname: pendingPath },
+      'Nostr pending session store save succeeded',
+    );
   } catch (err) {
     const errInfo = serializeError(err, 'load');
     stepLog.error({ type: LOG_TYPE.STORE_ERROR, functionName: 'load', err: errInfo }, 'Nostr pending store save failed');

@@ -47,12 +47,26 @@ export async function GET({ url, cookies }) {
     tokenData.author_urn = `urn:li:person:${user.sub}`;
 
     const pathname = tokenPath('linkedin', account);
-    stepLog.info({ functionName: 'GET', phase: 'store:save:start', pathname }, 'Saving LinkedIn token');
+    const storeLog = stepLog.child({ phase: 'linkedin:store:save', pathname });
+    storeLog.info(
+      {
+        type: LOG_TYPE.STORE_SAVE_START,
+        pathname,
+        dataKeys: Object.keys(tokenData || {}),
+        hasAccessToken: !!tokenData?.access_token,
+        hasRefresh: !!tokenData?.refresh_token,
+      },
+      'Starting LinkedIn token store save',
+    );
 
     // Validate store connection and write permission as first step before saving token
     await validateBlobPermissions();
 
     await saveToken(pathname, tokenData);
+    storeLog.info(
+      { type: LOG_TYPE.STORE_SAVE_SUCCESS, pathname },
+      'LinkedIn token store save succeeded',
+    );
     cookies.delete('linkedin_oauth_state', { path: '/' });
 
     stepLog.info({ functionName: 'GET', phase: 'callback:success', account }, 'LinkedIn connect complete');

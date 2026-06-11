@@ -68,7 +68,7 @@ export const actions = {
       });
     }
 
-    // Login succeeded, now save to blob
+    // Login succeeded, now save to token store
     const tokenData = {
       ...agent.session,
       service,

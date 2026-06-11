@@ -37,12 +37,25 @@ export async function GET({ url, cookies }) {
     const account = threadsUser.username || threadsUser.threads_user_id;
 
     const pathname = tokenPath('threads', account);
-    stepLog.info({ functionName: 'GET', phase: 'store:save:start', pathname }, 'Saving Threads token');
+    const storeLog = stepLog.child({ phase: 'threads:store:save', pathname });
+    storeLog.info(
+      {
+        type: LOG_TYPE.STORE_SAVE_START,
+        pathname,
+        dataKeys: Object.keys({ ...tokenData, ...threadsUser } || {}),
+        hasAccessToken: !!tokenData?.access_token,
+      },
+      'Starting Threads token store save',
+    );
 
     // Validate store connection and write permission as first step before saving token
     await validateBlobPermissions();
 
     await saveToken(pathname, { ...tokenData, ...threadsUser });
+    storeLog.info(
+      { type: LOG_TYPE.STORE_SAVE_SUCCESS, pathname },
+      'Threads token store save succeeded',
+    );
 
     cookies.delete('meta_oauth_state_threads', { path: '/' });
 
