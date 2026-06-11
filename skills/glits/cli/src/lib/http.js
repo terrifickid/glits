@@ -9,7 +9,14 @@ export async function fetchJson(url, options = {}) {
   }
   if (!res.ok) {
     const msg = data.error?.message || data.error_description || data.message || data.detail || text || res.statusText;
-    throw new Error(`${res.status} ${msg}`);
+    const err = new Error(`${res.status} ${msg}`);
+    // Attach rich details so upper layers (using logger) get full context for logging
+    err.status = res.status;
+    err.statusText = res.statusText;
+    err.response = { status: res.status, data, headers: Object.fromEntries(res.headers || []) };
+    err.url = url;
+    err.requestOptions = { method: options.method, headers: options.headers ? 'redacted' : undefined };
+    throw err;
   }
   return data;
 }

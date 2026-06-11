@@ -94,4 +94,13 @@ program
     }
   });
 
+program
+  .command('tokens')
+  .description('List all authorized accounts/tokens from Vercel Blob and show status (read-only diagnostic)')
+  .option('--json', 'Output machine-readable JSON (for agents)')
+  .action(async (opts) => {
+    const { tokensCommand } = await import('../src/commands/tokens.js');
+    return tokensCommand(opts);
+  });
+
 program.parse();
