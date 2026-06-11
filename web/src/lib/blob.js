@@ -27,6 +27,7 @@ export async function validateBlobPermissions() {
     const testKey = `tokens/_validation_test_${Date.now()}.json`;
     await put(testKey, JSON.stringify({ test: true, timestamp: new Date().toISOString() }), {
       access: 'private',
+      token: process.env.BLOB_READ_WRITE_TOKEN,
       allowOverwrite: true,
       contentType: 'application/json',
     });
