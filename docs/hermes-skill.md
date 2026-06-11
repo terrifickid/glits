@@ -1,6 +1,6 @@
 # Hermes skill
 
-Self-contained tap at `skills/glits/` — CLI bundled inside the skill.
+Self-contained tap at `glits/` — CLI bundled inside the skill.
 
 ## Install
 

@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "cli": "node cli/bin/glits.js",
-    "prepare:skill": "rm -rf skills/glits/cli skills/glits/glits.config.js && cp -r cli skills/glits/cli && cp glits.config.js skills/glits/glits.config.js",
+    "prepare:skill": "rm -rf glits/cli glits/glits.config.js && cp -r cli glits/cli && cp glits.config.js glits/glits.config.js",
     "dev:web": "npm run dev -w web",
     "build:web": "npm run build -w web"
   }
