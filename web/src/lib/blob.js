@@ -2,26 +2,28 @@ import { head, put, list, del } from '@vercel/blob';
 import { log, LOG_TYPE, serializeError } from '$lib/logger.js';
 
 const fnLog = log.child({ functionName: 'saveToken' });
-
-let _blobValidated = false;
+const validateLog = log.child({ functionName: 'validateBlobPermissions' });
 
 export async function validateBlobPermissions() {
-  if (_blobValidated) return;
+  const stepLog = validateLog.child({ phase: 'blob:validate' });
 
-  const stepLog = fnLog.child({ phase: 'blob:validate' });
+  stepLog.info('Checking access to blob storage');
 
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    stepLog.error({ type: LOG_TYPE.BLOB_ERROR }, 'BLOB_READ_WRITE_TOKEN is not set');
+    stepLog.error({ type: LOG_TYPE.BLOB_ERROR }, 'BLOB_READ_WRITE_TOKEN credential missing');
     throw new Error('BLOB_READ_WRITE_TOKEN is not set in the environment');
   }
 
-  stepLog.info('Validating Vercel Blob connection and write permission');
+  stepLog.info('BLOB_READ_WRITE_TOKEN credential present');
 
   try {
     // Test read/list access
+    stepLog.info('Testing read access');
     await list({ prefix: 'tokens/', limit: 1 });
+    stepLog.info('Read access confirmed');
 
     // Test write permission using the exact same options as real saves
+    stepLog.info('Testing write access');
     const testKey = `tokens/_validation_test_${Date.now()}.json`;
     await put(testKey, JSON.stringify({ test: true, timestamp: new Date().toISOString() }), {
       access: 'private',
@@ -32,9 +34,8 @@ export async function validateBlobPermissions() {
 
     stepLog.info(
       { type: LOG_TYPE.BLOB_SAVE_SUCCESS },
-      'Vercel Blob connection and write permission validated successfully'
+      'Confirmed read/write access to blob storage'
     );
-    _blobValidated = true;
   } catch (err) {
     const errInfo = serializeError(err);
     stepLog.error(
@@ -42,7 +43,7 @@ export async function validateBlobPermissions() {
         type: LOG_TYPE.BLOB_ERROR,
         err: errInfo,
       },
-      `Vercel Blob validation failed: ${err.message || 'unknown error'}`
+      `Blob access check failed: ${err.message || 'unknown error'}`
     );
     throw new Error(`Failed to validate blob connection and write permission: ${err.message || 'unknown error'}`);
   }
