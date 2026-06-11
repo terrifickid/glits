@@ -21,7 +21,7 @@ UPSTASH_KV_REST_API_URL=...
 UPSTASH_KV_REST_API_TOKEN=...
 ```
 
-Get it from Vercel → Storage → Blob.
+These are the Upstash Redis credentials (injected by the Vercel Upstash integration, or copied from your Upstash database).
 
 ## 3. Connect your accounts (one time)
 
