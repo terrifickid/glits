@@ -6,6 +6,7 @@ import * as instagram from './instagram.js';
 import * as linkedin from './linkedin.js';
 import * as youtube from './youtube.js';
 import * as facebook from './facebook.js';
+import * as nostr from './nostr.js';
 
 const platforms = {
   bluesky,
@@ -16,6 +17,7 @@ const platforms = {
   linkedin,
   youtube,
   facebook,
+  nostr,
 };
 
 export function getPlatform(name) {

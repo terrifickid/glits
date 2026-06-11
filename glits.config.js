@@ -8,5 +8,6 @@ export default {
     // 'linkedin',
     // 'youtube',
     // 'facebook',
+    // 'nostr',
   ],
 };
