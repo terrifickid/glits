@@ -1,5 +1,10 @@
 <script>
+  import { onMount } from 'svelte';
+  import { logHomeAuth } from './home-client.js';
+
   let { data } = $props();
+
+  onMount(() => logHomeAuth(data));
 
   const providers = [
     { id: 'bluesky', label: 'Bluesky', href: '/auth/bluesky' },

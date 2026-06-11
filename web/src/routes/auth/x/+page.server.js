@@ -1,6 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import { pkce, randomState } from '$lib/oauth.js';
 import { redirectBase, mustEnv } from '$lib/env.js';
+import { authEntry, logAuth } from '$lib/auth/verbose.js';
 
 export function load({ cookies }) {
   const { verifier, challenge } = pkce();
@@ -19,5 +20,6 @@ export function load({ cookies }) {
     code_challenge_method: 'S256',
   });
 
+  logAuth('x', 'oauth:redirect', authEntry('oauth:redirect', { state }));
   throw redirect(302, `https://twitter.com/i/oauth2/authorize?${params}`);
 }

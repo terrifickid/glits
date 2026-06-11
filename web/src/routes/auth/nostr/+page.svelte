@@ -1,37 +1,18 @@
 <script>
+  import { onMount } from 'svelte';
+  import { startNostrPolling } from './nostr-client.js';
+
   let { data } = $props();
 
   let status = $state('waiting');
   let error = $state('');
 
-  $effect(() => {
+  onMount(() => {
     if (!data?.session || data.polling) return;
-
-    status = 'waiting';
-    error = '';
-
-    const poll = async () => {
-      while (status === 'waiting') {
-        try {
-          const res = await fetch(`/auth/nostr/wait?session=${data.session}`);
-          const body = await res.json().catch(() => ({}));
-          if (body.ok) {
-            window.location.href = '/?connected=nostr';
-            return;
-          }
-          if (res.status === 408) continue;
-          status = 'error';
-          error = body.error || 'Connection failed';
-          return;
-        } catch (err) {
-          status = 'error';
-          error = err.message || 'Connection failed';
-          return;
-        }
-      }
-    };
-
-    poll();
+    return startNostrPolling(data.session, ({ status: nextStatus, error: nextError }) => {
+      status = nextStatus;
+      error = nextError;
+    });
   });
 </script>
 

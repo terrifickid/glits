@@ -3,6 +3,7 @@ import { secretKeyFromEnv } from '$lib/nostr/keys.js';
 import { mustEnv } from '$lib/env.js';
 import { loadToken, saveToken } from '$lib/blob.js';
 import { tokenPath } from '$lib/tokens.js';
+import { authEntry, logAuth, serializeError } from '$lib/auth/verbose.js';
 
 export const config = {
   maxDuration: 60,
@@ -11,13 +12,15 @@ export const config = {
 export async function GET({ url }) {
   const session = url.searchParams.get('session');
   if (!session) {
+    logAuth('nostr', 'wait:invalid', authEntry('failed', { error: 'missing session' }));
     return new Response('missing session', { status: 400 });
   }
 
   let pending;
   try {
     pending = await loadToken(`nostr-pending/${session}.json`);
-  } catch {
+  } catch (err) {
+    logAuth('nostr', 'wait:expired', authEntry('failed', { session, error: serializeError(err) }));
     return new Response('session expired', { status: 404 });
   }
 
@@ -46,8 +49,10 @@ export async function GET({ url }) {
       auth: 'nip46-bunker',
     });
 
+    logAuth('nostr', 'wait:success', authEntry('success', { session, npub: pending.user_npub }));
     return Response.json({ ok: true, npub: pending.user_npub });
   } catch (err) {
+    logAuth('nostr', 'wait:failed', authEntry('failed', { session, error: serializeError(err) }));
     return Response.json({ error: err.message || 'connect failed' }, { status: 408 });
   } finally {
     bunker.close();

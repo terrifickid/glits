@@ -1,4 +1,6 @@
 <script>
+  import { blueskyFormEnhance } from './bluesky-client.js';
+
   let { data, form } = $props();
 </script>
 
@@ -6,7 +8,7 @@
   <h1>Connect Bluesky</h1>
   <p>Use an <a href="https://bsky.app/settings/app-passwords" target="_blank" rel="noreferrer">app password</a> — not your main account password.</p>
 
-  <form method="POST">
+  <form method="POST" use:enhance={blueskyFormEnhance}>
     <p>
       <label>
         Handle

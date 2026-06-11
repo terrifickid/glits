@@ -1,12 +1,17 @@
 <script>
+  import { onMount } from 'svelte';
+  import { mastodonFormEnhance, logMastodonPageAuth } from './mastodon-client.js';
+
   let { data, form } = $props();
+
+  onMount(() => logMastodonPageAuth({ data, form }));
 </script>
 
 <div class="card">
   <h1>Connect Mastodon</h1>
   <p>Enter your instance URL (e.g. mastodon.social). You'll be redirected to authorize.</p>
 
-  <form method="POST" action="?/start">
+  <form method="POST" action="?/start" use:enhance={mastodonFormEnhance}>
     <p>
       <label>
         Instance
