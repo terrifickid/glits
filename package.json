@@ -1,0 +1,14 @@
+{
+  "name": "glits",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "cli",
+    "web"
+  ],
+  "scripts": {
+    "cli": "node cli/bin/glits.js",
+    "dev:web": "npm run dev -w web",
+    "build:web": "npm run build -w web"
+  }
+}
