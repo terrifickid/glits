@@ -29,7 +29,7 @@ export async function GET({ url, cookies }) {
 
     const page = await getFacebookPage(tokenData.access_token);
     const account = page.page_name || page.page_id;
-    // Validate blob connection and write permission as first step before saving token
+    // Validate store connection and write permission as first step before saving token
     await validateBlobPermissions();
 
     await saveToken(tokenPath('facebook', account), { ...tokenData, ...page });

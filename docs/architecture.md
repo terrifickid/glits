@@ -19,7 +19,7 @@ flowchart LR
 
   subgraph storage [Storage]
     Queue[Queue directory JSON files]
-    Blob[(Vercel Blob private)]
+    Store[(Upstash Redis / token keys)]
   end
 
   subgraph web [Web - Vercel]
@@ -29,7 +29,7 @@ flowchart LR
   Assets --> Create
   Create --> Queue
   Send --> Queue
-  Send --> Blob
+  Send --> Store
   Send --> Platforms
   Platforms --> OAuth
   Platforms --> Relays
@@ -73,7 +73,7 @@ glits/
 │       │   └── nostr.js
 │       ├── config.js        # loads ../../glits.config.js
 │       ├── queue.js         # filesystem queue I/O
-│       └── tokens.js        # Vercel Blob token read
+│       └── tokens.js        # Upstash Redis token read
 │
 └── web/
     └── src/
@@ -104,10 +104,10 @@ glits/
 
 | Module | Role |
 |--------|------|
-| `bin/glits.js` | Commander setup; `send` is lazy-imported so `create`/`list` don't load `@vercel/blob` |
+| `bin/glits.js` | Commander setup; `send` is lazy-imported so `create`/`list` don't load `@upstash/redis` |
 | `config.js` | Loads and caches `glits.config.js` from repo root |
 | `queue.js` | Read/write JSON files in `--queue` directory |
-| `tokens.js` | `list({ prefix: 'tokens/' })` → `head()` → `fetch(downloadUrl)` |
+| `tokens.js` | `redis.keys('tokens/*')` → `redis.get(key)` + parse |
 | `commands/create.js` | Calls `platform.buildPost()` for each enabled platform |
 | `commands/send.js` | Loads tokens, calls `platform.send()` per token, updates queue file |
 | `platforms/*.js` | `buildPost(opts)` + `send(post, tokenData, opts)` |
@@ -120,11 +120,11 @@ glits/
 | `/auth/{platform}` | Initiates OAuth or shows connect form |
 | `/auth/{platform}/callback` | OAuth callback (or Mastodon/Nostr wait endpoints) |
 
-Web writes tokens via `saveToken()` → Vercel Blob `put()` with `access: 'private'`.
+Web writes tokens via `saveToken()` → Upstash Redis `set()` (JSON string values).
 
 ### Shared token path convention
 
-Both web and CLI use the same blob naming:
+Both web and CLI use the same key naming:
 
 ```
 tokens/{safeAccount}-{platform}.json
@@ -179,7 +179,7 @@ glits send --queue ./queue [--retry] [--dry-run]
 });
 ```
 
-This keeps `create` and `list` free of Vercel Blob dependency at startup (useful when Blob token isn't set during local queue file creation).
+This keeps `create` and `list` free of the token store (redis) dependency at startup (useful when credentials aren't set during local queue file creation).
 
 ## Platform module contract
 

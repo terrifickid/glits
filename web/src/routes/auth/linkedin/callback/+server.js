@@ -47,9 +47,9 @@ export async function GET({ url, cookies }) {
     tokenData.author_urn = `urn:li:person:${user.sub}`;
 
     const pathname = tokenPath('linkedin', account);
-    stepLog.info({ functionName: 'GET', phase: 'blob:save:start', pathname }, 'Saving LinkedIn token');
+    stepLog.info({ functionName: 'GET', phase: 'store:save:start', pathname }, 'Saving LinkedIn token');
 
-    // Validate blob connection and write permission as first step before saving token
+    // Validate store connection and write permission as first step before saving token
     await validateBlobPermissions();
 
     await saveToken(pathname, tokenData);

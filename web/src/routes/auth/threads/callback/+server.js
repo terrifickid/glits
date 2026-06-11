@@ -37,9 +37,9 @@ export async function GET({ url, cookies }) {
     const account = threadsUser.username || threadsUser.threads_user_id;
 
     const pathname = tokenPath('threads', account);
-    stepLog.info({ functionName: 'GET', phase: 'blob:save:start', pathname }, 'Saving Threads token');
+    stepLog.info({ functionName: 'GET', phase: 'store:save:start', pathname }, 'Saving Threads token');
 
-    // Validate blob connection and write permission as first step before saving token
+    // Validate store connection and write permission as first step before saving token
     await validateBlobPermissions();
 
     await saveToken(pathname, { ...tokenData, ...threadsUser });

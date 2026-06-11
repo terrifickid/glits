@@ -3,8 +3,8 @@
 ## Prerequisites
 
 1. Node.js 18+ and npm
-2. A Vercel project with **Blob** storage enabled
-3. `BLOB_READ_WRITE_TOKEN` in `.env` (root of repo)
+2. A Vercel project with **Upstash Redis** (Marketplace integration recommended)
+3. `UPSTASH_KV_REST_API_URL` + `UPSTASH_KV_REST_API_TOKEN` in `.env` (root of repo)
 4. Web app deployed (for OAuth platforms)
 5. Platform developer apps registered (see [Configuration](./configuration.md))
 6. Platforms enabled in `glits.config.js`
@@ -29,7 +29,7 @@ cp .env.example .env
 4. Click **Connect** for each platform you use
 5. Complete OAuth or credential flows
 
-Tokens are saved to Vercel Blob automatically. You can connect multiple accounts per platform (each gets its own blob).
+Tokens are saved to the token store automatically. You can connect multiple accounts per platform (each gets its own key).
 
 ### Step 2: Enable platforms
 
@@ -206,7 +206,8 @@ jobs:
       - run: npm install
       - run: npm run cli -- send --queue ./queue --retry
         env:
-          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          UPSTASH_KV_REST_API_URL: ${{ secrets.UPSTASH_KV_REST_API_URL }}
+          UPSTASH_KV_REST_API_TOKEN: ${{ secrets.UPSTASH_KV_REST_API_TOKEN }}
           X_CLIENT_ID: ${{ secrets.X_CLIENT_ID }}
           X_CLIENT_SECRET: ${{ secrets.X_CLIENT_SECRET }}
           # ... other refresh secrets per platform

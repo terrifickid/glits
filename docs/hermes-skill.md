@@ -15,7 +15,8 @@ One command. CLI and config ship inside the skill. First run auto-installs npm d
 `~/.hermes/.env`:
 
 ```
-BLOB_READ_WRITE_TOKEN=...
+UPSTASH_KV_REST_API_URL=...
+UPSTASH_KV_REST_API_TOKEN=...
 X_CLIENT_ID=...
 X_CLIENT_SECRET=...
 ```
@@ -25,7 +26,8 @@ X_CLIENT_SECRET=...
 ```yaml
 terminal:
   env_passthrough:
-    - BLOB_READ_WRITE_TOKEN
+    - UPSTASH_KV_REST_API_URL
+    - UPSTASH_KV_REST_API_TOKEN
     - X_CLIENT_ID
     - X_CLIENT_SECRET
     - GOOGLE_CLIENT_ID

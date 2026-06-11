@@ -1,90 +1,99 @@
-import { head, put, list, del } from '@vercel/blob';
+import { Redis } from '@upstash/redis';
 import { log, LOG_TYPE, serializeError } from '$lib/logger.js';
+
+// Upstash Redis client (Vercel Marketplace injects UPSTASH_KV_*; support common fallbacks too)
+const redis = new Redis({
+  url:
+    process.env.UPSTASH_KV_REST_API_URL ||
+    process.env.KV_REST_API_URL ||
+    process.env.UPSTASH_REDIS_REST_URL ||
+    '',
+  token:
+    process.env.UPSTASH_KV_REST_API_TOKEN ||
+    process.env.KV_REST_API_TOKEN ||
+    process.env.UPSTASH_REDIS_REST_TOKEN ||
+    '',
+});
 
 const fnLog = log.child({ functionName: 'saveToken' });
 const validateLog = log.child({ functionName: 'validateBlobPermissions' });
 
 export async function validateBlobPermissions() {
-  const stepLog = validateLog.child({ phase: 'blob:validate' });
+  const stepLog = validateLog.child({ phase: 'store:validate' });
 
-  stepLog.info('Checking access to blob storage');
+  stepLog.info('Checking access to token store (Upstash Redis)');
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    stepLog.error({ type: LOG_TYPE.BLOB_ERROR }, 'BLOB_READ_WRITE_TOKEN credential missing');
-    throw new Error('BLOB_READ_WRITE_TOKEN is not set in the environment');
+  const hasUrl = !!(process.env.UPSTASH_KV_REST_API_URL || process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL);
+  const hasToken = !!(process.env.UPSTASH_KV_REST_API_TOKEN || process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN);
+
+  if (!hasUrl || !hasToken) {
+    stepLog.error({ type: LOG_TYPE.STORE_ERROR }, 'UPSTASH_KV_REST_API_URL / UPSTASH_KV_REST_API_TOKEN (or fallback) credentials missing');
+    throw new Error('UPSTASH_KV_REST_API_URL and UPSTASH_KV_REST_API_TOKEN (or equivalent KV_/UPSTASH_REDIS_*) are not set in the environment');
   }
 
-  stepLog.info('BLOB_READ_WRITE_TOKEN credential present');
+  stepLog.info('Token store credentials present');
 
   try {
-    // Test read/list access
-    stepLog.info('Testing read access');
-    await list({ prefix: 'tokens/', limit: 1 });
-    stepLog.info('Read access confirmed');
+    // Test connectivity
+    stepLog.info('Testing store access');
+    await redis.ping();
 
-    // Test write permission using the exact same options as real saves
-    stepLog.info('Testing write access');
+    // Test write/read using same key style as real tokens
+    stepLog.info('Testing write/read access');
     const testKey = `tokens/_validation_test_${Date.now()}.json`;
-    await put(testKey, JSON.stringify({ test: true, timestamp: new Date().toISOString() }), {
-      access: 'private',
-      token: process.env.BLOB_READ_WRITE_TOKEN,
-      storeId: process.env.BLOB_STORE_ID,
-      allowOverwrite: true,
-      contentType: 'application/json',
-    });
-    await del(testKey);
+    const testValue = JSON.stringify({ test: true, timestamp: new Date().toISOString() });
+    await redis.set(testKey, testValue);
+    const readBack = await redis.get(testKey);
+    if (!readBack) throw new Error('Test read after write returned no value');
+    await redis.del(testKey);
 
     stepLog.info(
-      { type: LOG_TYPE.BLOB_SAVE_SUCCESS },
-      'Confirmed read/write access to blob storage'
+      { type: LOG_TYPE.STORE_SAVE_SUCCESS },
+      'Confirmed read/write access to token store'
     );
   } catch (err) {
     const errInfo = serializeError(err);
     stepLog.error(
       {
-        type: LOG_TYPE.BLOB_ERROR,
+        type: LOG_TYPE.STORE_ERROR,
         err: errInfo,
       },
-      `Blob access check failed: ${err.message || 'unknown error'}`
+      `Token store access check failed: ${err.message || 'unknown error'}`
     );
-    throw new Error(`Failed to validate blob connection and write permission: ${err.message || 'unknown error'}`);
+    throw new Error(`Failed to validate token store connection and write permission: ${err.message || 'unknown error'}`);
   }
 }
 
 export async function saveToken(pathname, data) {
-  // First step: validate blob connection and write permission before any save
+  // First step: validate store connection and write permission before any save
   await validateBlobPermissions();
 
-  const stepLog = fnLog.child({ phase: 'blob:save:start', pathname });
+  const stepLog = fnLog.child({ phase: 'store:save:start', pathname });
   stepLog.info(
     {
-      type: LOG_TYPE.BLOB_SAVE_START,
+      type: LOG_TYPE.STORE_SAVE_START,
       dataKeys: Object.keys(data || {}),
       hasAccessToken: !!data?.access_token,
     },
-    'Starting Vercel Blob private save for token',
+    'Starting token store private save for token',
   );
 
   try {
-    await put(pathname, JSON.stringify(data), {
-      access: 'private',
-      allowOverwrite: true,
-      contentType: 'application/json',
-    });
+    await redis.set(pathname, JSON.stringify(data));
     stepLog.info(
-      { type: LOG_TYPE.BLOB_SAVE_SUCCESS, pathname },
-      'Vercel Blob save succeeded',
+      { type: LOG_TYPE.STORE_SAVE_SUCCESS, pathname },
+      'Token store save succeeded',
     );
   } catch (err) {
-    const serverError = err.message || 'Vercel Blob save failed';
+    const serverError = err.message || 'Token store save failed';
     const errInfo = serializeError(err);
     stepLog.error(
       {
-        type: LOG_TYPE.BLOB_ERROR,
+        type: LOG_TYPE.STORE_ERROR,
         err: errInfo,
         pathname,
       },
-      `Vercel Blob save failed: ${serverError}`,
+      `Token store save failed: ${serverError}`,
     );
     throw err;
   }
@@ -93,44 +102,43 @@ export async function saveToken(pathname, data) {
 const loadLog = log.child({ functionName: 'loadToken' });
 
 export async function loadToken(pathname) {
-  // Validate blob connection and permission when accessing blob
+  // Validate store connection and permission when accessing
   await validateBlobPermissions();
 
-  const stepLog = loadLog.child({ phase: 'blob:load:start', pathname });
-  stepLog.info('Starting Vercel Blob load for token');
+  const stepLog = loadLog.child({ phase: 'store:load:start', pathname });
+  stepLog.info('Starting token store load for token');
 
   try {
-    const meta = await head(pathname);
-    const res = await fetch(meta.downloadUrl);
-    if (!res.ok) {
-      const serverError = `Failed to read blob ${pathname}: ${res.status}`;
+    const val = await redis.get(pathname);
+    if (val == null) {
+      const serverError = `Failed to read token ${pathname}: key not found or no value`;
       const err = new Error(serverError);
-      err.status = res.status;
+      err.status = 404;
       err.pathname = pathname;
       const errInfo = serializeError(err);
       stepLog.error(
         {
-          type: LOG_TYPE.BLOB_ERROR,
+          type: LOG_TYPE.STORE_ERROR,
           err: errInfo,
           pathname,
         },
-        `Vercel Blob load failed: ${serverError}`,
+        `Token store load failed: ${serverError}`,
       );
       throw err;
     }
-    const token = JSON.parse(await res.text());
-    stepLog.info({ phase: 'blob:load:success', hasAccessToken: !!token?.access_token }, 'Vercel Blob load succeeded');
+    const token = JSON.parse(val);
+    stepLog.info({ phase: 'store:load:success', hasAccessToken: !!token?.access_token }, 'Token store load succeeded');
     return token;
   } catch (err) {
-    const serverError = err.message || 'Vercel Blob load failed';
+    const serverError = err.message || 'Token store load failed';
     const errInfo = serializeError(err);
     stepLog.error(
       {
-        type: LOG_TYPE.BLOB_ERROR,
+        type: LOG_TYPE.STORE_ERROR,
         err: errInfo,
         pathname,
       },
-      `Vercel Blob load failed: ${serverError}`,
+      `Token store load failed: ${serverError}`,
     );
     throw err;
   }

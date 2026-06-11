@@ -1,6 +1,6 @@
 # Web authentication
 
-The SvelteKit web app (`web/`) handles **account authorization only**. It writes token JSON to private Vercel Blob. It does not read queue files or post content.
+The SvelteKit web app (`web/`) handles **account authorization only**. It writes token JSON to the private token store (Upstash Redis). It does not read queue files or post content.
 
 **Runtime:** Vercel serverless, Node.js 22.x (`adapter-vercel`).
 
@@ -14,7 +14,7 @@ Lists connect links for all platforms. Shows `?connected={platform}` or `?error=
 
 | File | Purpose |
 |------|---------|
-| `lib/blob.js` | `saveToken()`, `loadToken()` via `@vercel/blob` |
+| `lib/blob.js` | `saveToken()`, `loadToken()` via `@upstash/redis` (token store) |
 | `lib/tokens.js` | `tokenPath(platform, account)` → `tokens/{account}-{platform}.json` |
 | `lib/env.js` | `redirectBase()`, `mustEnv()` |
 | `lib/oauth.js` | PKCE, `exchangeCode()`, `randomState()`, `fetchJson()` |

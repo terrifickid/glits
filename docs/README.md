@@ -26,7 +26,7 @@ npm install
 
 # Configure
 cp .env.example .env
-# Edit .env with BLOB_READ_WRITE_TOKEN and platform OAuth secrets
+# Edit .env with UPSTASH_KV_REST_API_URL / UPSTASH_KV_REST_API_TOKEN and platform OAuth secrets
 
 # Enable platforms in glits.config.js (one at a time recommended)
 
@@ -61,5 +61,5 @@ npm run cli -- send --queue ./queue
 
 - **JavaScript only** — no TypeScript
 - **Node.js** CLI + **SvelteKit** web (auth only)
-- **Vercel Blob** for private token storage
+- **Upstash Redis** (via Vercel) for private token storage
 - **Vercel** for web hosting (`adapter-vercel`, `nodejs22.x`)

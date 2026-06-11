@@ -38,7 +38,7 @@ export async function GET({ url, cookies }) {
     const channel = await channelRes.json();
     const account = channel.items?.[0]?.snippet?.title || 'channel';
 
-    // Validate blob connection and write permission as first step before saving token
+    // Validate store connection and write permission as first step before saving token
     await validateBlobPermissions();
 
     await saveToken(tokenPath('youtube', account), tokenData);

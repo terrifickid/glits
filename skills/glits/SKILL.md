@@ -11,9 +11,13 @@ metadata:
     category: productivity
     requires_toolsets: [terminal]
 required_environment_variables:
-  - name: BLOB_READ_WRITE_TOKEN
-    prompt: Vercel Blob read/write token
-    help: Vercel dashboard → Storage → Blob
+  - name: UPSTASH_KV_REST_API_URL
+    prompt: Upstash Redis REST URL (from Vercel Upstash integration or console)
+    help: Usually UPSTASH_KV_REST_API_URL + UPSTASH_KV_REST_API_TOKEN (or KV_/UPSTASH_REDIS_ fallbacks)
+    required_for: publishing
+  - name: UPSTASH_KV_REST_API_TOKEN
+    prompt: Upstash Redis REST token
+    help: Pair with the URL above
     required_for: publishing
 ---
 
@@ -28,8 +32,8 @@ There are **two separate pieces** that share only one secret:
 1. **Web auth app** (deployed once from the `web/` directory in the glits repo to Vercel)
    - Users (or you on their behalf) go to the web UI and click "Connect" for each platform.
    - The web app performs OAuth (or credential) flows using the platform's client IDs/secrets.
-   - On success it writes a **private token JSON blob** into Vercel Blob storage under the `tokens/` prefix.
-   - Example blob keys: `tokens/alice.bsky.social-bluesky.json`, `tokens/myhandle-x.json`.
+   - On success it writes a **private token JSON value** into Upstash Redis under the `tokens/` key prefix.
+   - Example keys: `tokens/alice.bsky.social-bluesky.json`, `tokens/myhandle-x.json`.
    - The web app also needs the shared storage credential (to write) + the various platform OAuth client secrets in its Vercel environment.
 
 2. **This skill / CLI** (what you are running now)
@@ -156,7 +160,7 @@ All commands live in `${HERMES_SKILL_DIR}/scripts/` (the skill directory after i
 | List queue      | `list.sh`                                   | Shows the local queue files + their send status. |
 | Send / publish  | `send.sh`                                   | For every queued post, loads **all** token blobs matching the post's platform, then calls the platform sender. Updates the queue JSON with per-token results. |
 | Retry failed    | `send.sh --retry`                           | Re-attempts only posts with status `failed`. |
-| **Inspect tokens** | `tokens.sh` or `tokens.sh --json`        | **New diagnostic command.** Lists every authorized account/token that exists in the Vercel Blob + a computed status (valid/expired/unknown) based on stored `expires_at` / `obtained_at`. **Safe — never prints secrets.** Use this first when an agent is unsure what accounts are available. |
+| **Inspect tokens** | `tokens.sh` or `tokens.sh --json`        | **Diagnostic command.** Lists every authorized account/token that exists in the token store + a computed status (valid/expired/unknown) based on stored `expires_at` / `obtained_at`. **Safe — never prints secrets.** Use this first when an agent is unsure what accounts are available. |
 
 Internally the scripts call `glits.sh <subcommand>` which runs the bundled Node CLI (`cli/bin/glits.js`). You can also invoke `glits tokens --json` directly if you cd into the skill's `cli/` after its npm deps are installed.
 
@@ -204,20 +208,20 @@ Internally the scripts call `glits.sh <subcommand>` which runs the bundled Node 
 
 ## Environment Variables
 
-- The skill declares one required secret in its frontmatter (the Vercel Blob storage credential used for reading the private per-account tokens). Hermes prompts for it on install and surfaces it to the terminal environment for the skill's scripts.
+- The skill declares the Upstash Redis credentials in its frontmatter (the token store used for reading the private per-account tokens). Hermes prompts for the URL + token on install and surfaces them to the terminal environment for the skill's scripts.
 - All other secrets (platform OAuth client IDs/secrets, redirect base, Nostr bunker key, etc.) are needed **only** by the separate web auth app deployment so it can perform the initial OAuth connections and write the tokens.
 - The web app and this CLI skill must be configured against the **same** Blob store so that tokens written by the web are visible when the skill runs `send`.
 
 ## Pitfalls & Agent Guidance (IMPORTANT)
 
-- **"No tokens found for platform: X"** — This is the #1 error. Root cause is almost always "no matching `tokens/*-x.json` blob exists yet". The fix is **never** "run a tokens subcommand to create one". The fix is: connect the account in the deployed web UI.
+- **"No tokens found for platform: X"** — This is the #1 error. Root cause is almost always "no matching `tokens/*-x.json` key exists yet". The fix is **never** "run a tokens subcommand to create one". The fix is: connect the account in the deployed web UI.
 - Do **not** invent CLI commands such as `glits auth`, `glits login`, `glits connect`, `glits tokens add`, `list tokens` as a subcommand of something else, etc. The only token-related command is the read-only `tokens` (via `tokens.sh` or `glits tokens`).
 - Queue files are local to the skill dir (or `GLITS_QUEUE`). They are **not** stored in Blob.
 - `create` works without any BLOB token or any connected accounts (it only writes local JSON). `send` is what requires the token + the blobs.
 - Instagram and YouTube have strict media requirements (image/video respectively). The create step will still succeed; send will fail later.
 - Local filesystem paths are never accepted — everything must be public HTTPS URLs that the platform APIs (and the CLI) can fetch.
 - Refreshable tokens (X, LinkedIn, YouTube) store `refresh_token` + timestamps. The `tokens` command will surface `has_refresh_token` and `expired` status. If a refresh fails at send time the post for that account fails and the user usually has to re-connect on the web.
-- Multiple accounts per platform are supported. One `send` on a platform posts to **every** token blob whose name ends with `-platform.json`. Use separate Blob stores or manually delete blobs in the Vercel dashboard if you need isolation.
+- Multiple accounts per platform are supported. One `send` on a platform posts to **every** token key whose name ends with `-platform.json`. Use separate Redis DBs or manually delete keys in the Upstash console if you need isolation.
 - Edit the config using the exact location and agent editing pattern described in the "Config File" section above. Never edit a file outside the installed skill directory when running as a hermes user.
 
 ## New in this version: tokens inspection for agents

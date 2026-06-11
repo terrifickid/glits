@@ -57,9 +57,9 @@ export async function GET({ url, cookies }) {
 
     tokenData.username = username;
     const pathname = tokenPath('x', username);
-    stepLog.info({ functionName: 'GET', phase: 'blob:save:start', pathname }, 'Saving X token');
+    stepLog.info({ functionName: 'GET', phase: 'store:save:start', pathname }, 'Saving X token');
 
-    // Validate blob connection and write permission as first step before saving token
+    // Validate store connection and write permission as first step before saving token
     await validateBlobPermissions();
 
     await saveToken(pathname, tokenData);

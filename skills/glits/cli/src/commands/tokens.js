@@ -14,8 +14,8 @@ export async function tokensCommand(opts = {}) {
   try {
     tokens = await listAllTokens();
   } catch (err) {
-    const msg = err?.isBlobListError || /blob/i.test(String(err))
-      ? 'Failed to list tokens from Vercel Blob. Is the required storage credential set and valid in the environment?'
+    const msg = err?.isStoreListError || /store|redis|upstash|kv_rest/i.test(String(err))
+      ? 'Failed to list tokens from token store. Is the required storage credential (UPSTASH_KV_REST_API_*) set and valid in the environment?'
       : `Error loading tokens: ${err.message || err}`;
     console.error(msg);
     if (opts.json) {
@@ -31,8 +31,8 @@ export async function tokensCommand(opts = {}) {
 
   if (!tokens.length) {
     console.log('No authorized tokens found.');
-    console.log('Connect accounts using the glits web auth app (it writes the tokens to Vercel Blob).');
-    console.log('Then re-run this command (or send) after ensuring the required storage credential is available to the skill.');
+    console.log('Connect accounts using the glits web auth app (it writes the tokens to the token store).');
+    console.log('Then re-run this command (or send) after ensuring the required storage credential (UPSTASH_KV_*) is available to the skill.');
     return;
   }
 

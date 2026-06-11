@@ -45,9 +45,9 @@ export async function GET({ url }) {
     const account = pending.user_pubkey.slice(0, 12);
 
     const finalPath = tokenPath('nostr', account);
-    stepLog.info({ functionName: 'GET', phase: 'nostr:wait:blob:save:start', finalPath }, 'Saving final Nostr delegated token');
+    stepLog.info({ functionName: 'GET', phase: 'nostr:wait:store:save:start', finalPath }, 'Saving final Nostr delegated token');
 
-    // Validate blob connection and write permission as first step before saving token
+    // Validate store connection and write permission as first step before saving token
     await validateBlobPermissions();
 
     await saveToken(finalPath, {

@@ -26,9 +26,9 @@ export async function load({ url }) {
   const relays = parseRelays(env.NOSTR_RELAYS);
 
   try {
-    stepLog.info({ functionName: 'load', phase: 'nostr:pending:save:start', sessionId }, 'Saving Nostr pending session to Blob');
+    stepLog.info({ functionName: 'load', phase: 'nostr:pending:save:start', sessionId }, 'Saving Nostr pending session to store');
 
-    // Validate blob connection and write permission as first step before saving token
+    // Validate store connection and write permission as first step before saving token
     await validateBlobPermissions();
 
     await saveToken(`nostr-pending/${sessionId}.json`, {
@@ -42,7 +42,7 @@ export async function load({ url }) {
     stepLog.info({ functionName: 'load', phase: 'nostr:pending:save:success' }, 'Nostr pending saved');
   } catch (err) {
     const errInfo = serializeError(err, 'load');
-    stepLog.error({ type: LOG_TYPE.BLOB_ERROR, functionName: 'load', err: errInfo }, 'Nostr pending Blob save failed');
+    stepLog.error({ type: LOG_TYPE.STORE_ERROR, functionName: 'load', err: errInfo }, 'Nostr pending store save failed');
     throw err;
   }
 

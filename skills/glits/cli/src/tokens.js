@@ -1,31 +1,46 @@
-import { list, head } from '@vercel/blob';
+import { Redis } from '@upstash/redis';
 import { isExpired } from './lib/oauth-token.js';
 
 const TOKEN_PREFIX = 'tokens/';
 
+// Upstash Redis client (same env names as web)
+const redis = new Redis({
+  url:
+    process.env.UPSTASH_KV_REST_API_URL ||
+    process.env.KV_REST_API_URL ||
+    process.env.UPSTASH_REDIS_REST_URL ||
+    '',
+  token:
+    process.env.UPSTASH_KV_REST_API_TOKEN ||
+    process.env.KV_REST_API_TOKEN ||
+    process.env.UPSTASH_REDIS_REST_TOKEN ||
+    '',
+});
+
 export async function listTokenBlobs() {
   try {
-    const { blobs } = await list({ prefix: TOKEN_PREFIX });
-    return blobs;
+    // Use keys for the tokens/ prefix (small cardinality; scan would also work)
+    const keys = await redis.keys(`${TOKEN_PREFIX}*`);
+    // Return shape compatible with previous callers (objects with .pathname)
+    return keys.map((k) => ({ pathname: k }));
   } catch (err) {
-    // Enrich so logger in callers sees full Blob error details
-    err.isBlobListError = true;
+    // Enrich so logger in callers sees full store error details
+    err.isStoreListError = true;
     err.prefix = TOKEN_PREFIX;
     throw err;
   }
 }
 
 export async function getTokenBlob(pathname) {
-  const meta = await head(pathname);
-  const res = await fetch(meta.downloadUrl);
-  if (!res.ok) {
-    const err = new Error(`Failed to read token ${pathname}: ${res.status}`);
-    err.status = res.status;
+  const val = await redis.get(pathname);
+  if (val == null) {
+    const err = new Error(`Failed to read token ${pathname}: key not found or no value`);
+    err.status = 404;
     err.pathname = pathname;
-    err.response = { status: res.status };
+    err.response = { status: 404 };
     throw err;
   }
-  return JSON.parse(await res.text());
+  return JSON.parse(val);
 }
 
 export function platformFromTokenPath(pathname) {
@@ -97,7 +112,7 @@ function summarizeToken(pathname, data) {
 /**
  * List ALL authorized tokens across every platform.
  * Returns an array of safe summary objects (no secrets).
- * Requires the skill's declared storage credential to be present in the environment.
+ * Requires the storage credential (UPSTASH_KV_*) to be present in the environment.
  */
 export async function listAllTokens() {
   const blobs = await listTokenBlobs();

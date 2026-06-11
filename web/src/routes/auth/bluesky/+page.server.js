@@ -76,20 +76,20 @@ export const actions = {
     };
 
     const pathname = tokenPath('bluesky', agent.session.handle || handle);
-    const blobLog = actionLog.child({ phase: 'bluesky:blob:save' });
-    blobLog.info(
-      { type: LOG_TYPE.BLOB_SAVE_START, pathname },
-      'Starting Bluesky token Blob save',
+    const storeLog = actionLog.child({ phase: 'bluesky:store:save' });
+    storeLog.info(
+      { type: LOG_TYPE.STORE_SAVE_START, pathname },
+      'Starting Bluesky token store save',
     );
 
-    // Validate blob connection and write permission as first step before saving token
+    // Validate store connection and write permission as first step before saving token
     await validateBlobPermissions();
 
     try {
       await saveToken(pathname, tokenData);
-      blobLog.info(
-        { type: LOG_TYPE.BLOB_SAVE_SUCCESS, pathname },
-        'Bluesky token Blob save succeeded',
+      storeLog.info(
+        { type: LOG_TYPE.STORE_SAVE_SUCCESS, pathname },
+        'Bluesky token store save succeeded',
       );
 
       return {
@@ -98,18 +98,18 @@ export const actions = {
       };
     } catch (err) {
       const errInfo = serializeError(err);
-      blobLog.error(
+      storeLog.error(
         {
-          type: LOG_TYPE.BLOB_ERROR,
+          type: LOG_TYPE.STORE_ERROR,
           err: errInfo,
           handle,
           service,
           pathname,
         },
-        `Bluesky token Blob save failed: ${err.message || 'unknown error'}`,
+        `Bluesky token store save failed: ${err.message || 'unknown error'}`,
       );
 
-      // Login succeeded for the user, but blob save failed - still return success so user sees connected,
+      // Login succeeded for the user, but store save failed - still return success so user sees connected,
       // but the token won't be persisted for later sends. This is a system error.
       return {
         success: true,

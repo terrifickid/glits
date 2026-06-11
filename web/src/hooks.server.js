@@ -6,7 +6,7 @@ import _ from "lodash";
  * Global error handler for SvelteKit server (web).
  * Captures all unhandled errors with full context + functionName where possible.
  * Follows log-example.js global handler pattern.
- * This ensures no error is silent in OAuth/delegation/blob flows.
+ * This ensures no error is silent in OAuth/delegation/store flows.
  */
 export async function handleError({ error, event }) {
   const errInfo = serializeError(error, "hooks.server.handleError");

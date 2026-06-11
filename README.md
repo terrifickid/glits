@@ -17,7 +17,8 @@ hermes skills install terrifickid/glits/glits
 Put this in `~/.hermes/.env`:
 
 ```
-BLOB_READ_WRITE_TOKEN=your_token_here
+UPSTASH_KV_REST_API_URL=...
+UPSTASH_KV_REST_API_TOKEN=...
 ```
 
 Get it from Vercel → Storage → Blob.

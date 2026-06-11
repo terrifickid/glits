@@ -6,7 +6,7 @@ Social media post queue and publishing.
 
 ```bash
 npm install
-cp .env.example .env   # add BLOB_READ_WRITE_TOKEN
+cp .env.example .env   # add UPSTASH_KV_REST_API_URL + UPSTASH_KV_REST_API_TOKEN
 vercel env pull        # or copy from Vercel dashboard
 ```
 
@@ -49,7 +49,7 @@ npm run cli -- send --queue ./my-posts --dry-run
 npm run build:web
 ```
 
-Deploy the `web/` directory to Vercel. Add `BLOB_READ_WRITE_TOKEN` in project env vars.
+Deploy the `web/` directory to Vercel. Add the Upstash Redis integration (provides UPSTASH_KV_* env vars).
 
 ## Structure
 

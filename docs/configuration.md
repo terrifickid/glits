@@ -36,7 +36,7 @@ Copy `.env.example` to `.env` at repo root. Both CLI and web read from this file
 
 | Variable | Used by | Description |
 |----------|---------|-------------|
-| `BLOB_READ_WRITE_TOKEN` | CLI + Web | Vercel Blob read/write token |
+| `UPSTASH_KV_REST_API_URL` / `UPSTASH_KV_REST_API_TOKEN` | CLI + Web | Upstash Redis REST URL + token (injected by Vercel Upstash integration; fallbacks for KV_/UPSTASH_REDIS_* supported) |
 
 ### Web OAuth
 
@@ -163,7 +163,8 @@ Register `http://localhost:5173/auth/{platform}/callback` in each OAuth app (whe
 Set all variables in Vercel project settings → Environment Variables. Minimum for auth:
 
 ```
-BLOB_READ_WRITE_TOKEN
+UPSTASH_KV_REST_API_URL
+UPSTASH_KV_REST_API_TOKEN
 OAUTH_REDIRECT_BASE
 META_APP_ID
 META_APP_SECRET

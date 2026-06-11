@@ -80,10 +80,10 @@ export async function sendCommand(opts) {
       tokens = await getTokensForPlatform(post.platform);
       fileLog.info({ tokenCount: tokens.length, tokens: tokens.map((t) => t.pathname) }, 'tokens loaded for platform');
     } catch (err) {
-      fileLog.error({ type: ERROR_TYPE.BLOB_ERROR, functionName: 'sendCommand.getTokensForPlatform', err, platform: post.platform }, 'Failed to load tokens from Vercel Blob');
+      fileLog.error({ type: ERROR_TYPE.STORE_ERROR, functionName: 'sendCommand.getTokensForPlatform', err, platform: post.platform }, 'Failed to load tokens from token store');
       post.status = 'failed';
       post.last_attempt_at = new Date().toISOString();
-      post.error = 'Failed to load tokens from Vercel Blob';
+      post.error = 'Failed to load tokens from token store';
       post.errorDetails = serializeError(err);
       await writeQueueFile(filePath, post);
       failed++;

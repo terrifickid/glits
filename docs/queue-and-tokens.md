@@ -130,9 +130,9 @@ Platform-specific structure built by `buildPost()`. Examples:
 
 See [Platforms](./platforms.md) for full per-platform payload details.
 
-## Token storage (Vercel Blob)
+## Token storage (Upstash Redis)
 
-### Path convention
+### Path convention (Redis keys)
 
 ```
 tokens/{account}-{platform}.json
@@ -150,27 +150,23 @@ tokens/abc123def456-nostr.json
 
 ### How CLI finds tokens
 
-1. `list({ prefix: 'tokens/' })` — all token blobs
-2. Filter where pathname ends with `-{platform}.json`
-3. For each match: `head(pathname)` → `fetch(downloadUrl)` → parse JSON
+1. `redis.keys('tokens/*')` — all token keys (or SCAN for very large sets)
+2. Filter where key ends with `-{platform}.json`
+3. For each match: `redis.get(key)` → JSON.parse
 
-**Note:** `@vercel/blob` 0.27 has no `get()` — use `head` + fetch pattern.
+Values are stored as JSON strings (no separate metadata objects).
 
 ### How web writes tokens
 
 ```javascript
-await put(pathname, JSON.stringify(data), {
-  access: 'private',
-  allowOverwrite: true,
-  contentType: 'application/json',
-});
+await redis.set(pathname, JSON.stringify(data));
 ```
 
 ### Multi-account behavior
 
 No `user_id` in queue files. `send` iterates **all** tokens for `post.platform`.
 
-To post to one account only: disconnect other accounts on web (delete their blob manually in Vercel dashboard) or use separate Vercel Blob stores.
+To post to one account only: disconnect other accounts on web (delete their key in Upstash console Data browser) or use a separate Redis database.
 
 ### Token contents (by platform)
 
@@ -193,6 +189,6 @@ OAuth tokens include `obtained_at` and often `expires_at` for refresh logic in `
 ## Security notes
 
 - Tokens are **private** blobs — not publicly accessible
-- `BLOB_READ_WRITE_TOKEN` grants full read/write — protect it
+- The `UPSTASH_KV_*` (or fallback) token grants full access to the Redis instance — protect it
 - Bluesky stores session JWTs; Nostr stores delegated `nsec`
 - Rotating OAuth: re-connect on web; old blob is overwritten (`allowOverwrite: true`)

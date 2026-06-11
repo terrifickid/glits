@@ -22,7 +22,7 @@ Posts live as JSON files in a queue directory you choose (`--queue`). There is n
 
 ## 3. Authorize once, send many times
 
-Users connect accounts on the **web app** (or paste credentials for Bluesky). Tokens are stored in **private Vercel Blob**. The CLI reads those tokens at send time.
+Users connect accounts on the **web app** (or paste credentials for Bluesky). Tokens are stored in **private Upstash Redis** (keys under `tokens/`). The CLI reads those tokens at send time.
 
 There is no per-post user interaction. OAuth refresh (where applicable) happens automatically in the CLI.
 
@@ -78,8 +78,8 @@ glits explicitly does **not**:
 
 ## Security model
 
-- **Tokens** are full OAuth sessions or credentials, stored in **private** Vercel Blob
-- **`.env`** holds `BLOB_READ_WRITE_TOKEN` and OAuth client secrets — never commit it
+- **Tokens** are full OAuth sessions or credentials, stored in **private** Upstash Redis (keys)
+- **`.env`** holds the Upstash Redis credentials (`UPSTASH_KV_*`) and OAuth client secrets — never commit it
 - **Web** runs on Vercel; only auth routes touch Blob write
-- **CLI** needs `BLOB_READ_WRITE_TOKEN` read access for `send`
+- **CLI** needs the Upstash Redis credentials for `send`
 - **Nostr** uses a dedicated posting key authorized via NIP-46 — not the user's main `nsec`

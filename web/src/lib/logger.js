@@ -13,8 +13,8 @@ export const LOG_TYPE = {
   EXCHANGE_RESPONSE: 'EXCHANGE_RESPONSE',
   USER_FETCH_START: 'USER_FETCH_START',
   USER_FETCH_SUCCESS: 'USER_FETCH_SUCCESS',
-  BLOB_SAVE_START: 'BLOB_SAVE_START',
-  BLOB_SAVE_SUCCESS: 'BLOB_SAVE_SUCCESS',
+  STORE_SAVE_START: 'STORE_SAVE_START',
+  STORE_SAVE_SUCCESS: 'STORE_SAVE_SUCCESS',
   NOSTR_SESSION_START: 'NOSTR_SESSION_START',
   NOSTR_PENDING_SAVE: 'NOSTR_PENDING_SAVE',
   NOSTR_BUNKER_WAIT: 'NOSTR_BUNKER_WAIT',
@@ -26,7 +26,7 @@ export const LOG_TYPE = {
   // Error types (from log-example.js + expanded)
   UNCAUGHT_EXCEPTION: 'UNCAUGHT_EXCEPTION',
   UNHANDLED_REJECTION: 'UNHANDLED_REJECTION',
-  BLOB_ERROR: 'BLOB_ERROR',
+  STORE_ERROR: 'STORE_ERROR',
   OAUTH_EXCHANGE_ERROR: 'OAUTH_EXCHANGE_ERROR',
   USER_FETCH_ERROR: 'USER_FETCH_ERROR',
   STATE_MISMATCH: 'STATE_MISMATCH',
@@ -71,8 +71,8 @@ export function serializeError(err, functionName = null) {
  * Usage example (in function):
  *   const log = createLogger();
  *   const fnLog = log.child({ provider: 'bluesky', functionName: 'default' });
- *   fnLog.info({ phase: 'blob:save:start', pathname }, 'Starting Vercel Blob save');
- *   fnLog.error({ type: LOG_TYPE.BLOB_ERROR, err: serializeError(err), ... }, 'Blob save failed');
+ *   fnLog.info({ phase: 'store:save:start', pathname }, 'Starting token store save');
+ *   fnLog.error({ type: LOG_TYPE.STORE_ERROR, err: serializeError(err), ... }, 'Token store save failed');
  */
 export function createLogger(overrides = {}) {
   const service = process.env.SERVICE_NAME || 'glits-web';

@@ -6,7 +6,7 @@
 |-----------|-------|-----|
 | Web (auth) | Vercel | `npm run build:web` via adapter-vercel |
 | CLI | Local / CI / cron | `node cli/bin/glits.js` |
-| Tokens | Vercel Blob | Private JSON blobs |
+| Tokens | Upstash Redis (via Vercel) | Private JSON values under token keys |
 | Queue | Filesystem | Any path via `--queue` |
 
 ## Web: Vercel deployment
@@ -21,16 +21,17 @@ npm run build:web
 
 Output is handled by `@sveltejs/adapter-vercel`.
 
-### 2. Enable Vercel Blob
+### 2. Enable Upstash Redis (token store)
 
-In Vercel dashboard → Storage → Blob. Create store. Copy `BLOB_READ_WRITE_TOKEN`.
+In Vercel dashboard → Marketplace (or Storage) → find "Upstash for Redis" (or "Upstash KV"). Install/link to the project. This injects `UPSTASH_KV_REST_API_URL` and `UPSTASH_KV_REST_API_TOKEN` (fallbacks for `KV_*` / `UPSTASH_REDIS_*` also supported). No separate token copy step needed beyond the integration.
 
 ### 3. Environment variables
 
 Set for Production (and Preview if testing OAuth):
 
 ```
-BLOB_READ_WRITE_TOKEN
+UPSTASH_KV_REST_API_URL (or KV_REST_API_URL / UPSTASH_REDIS_REST_URL)
+UPSTASH_KV_REST_API_TOKEN (or equivalent)
 OAUTH_REDIRECT_BASE=https://your-project.vercel.app
 X_CLIENT_ID
 X_CLIENT_SECRET
@@ -65,8 +66,8 @@ Mastodon instances receive redirect URI at app registration time (automatic).
 
 1. Visit `/` — all connect links visible
 2. Connect one platform
-3. Verify blob appears in Vercel Blob dashboard: `tokens/...`
-4. Run CLI `send` from local machine with same `BLOB_READ_WRITE_TOKEN`
+3. Verify a token key appears in Upstash console (Data browser) under `tokens/...` after connecting an account.
+4. Run CLI `send` from local machine with the same `UPSTASH_KV_*` credentials in the environment
 
 ## CLI: local and CI
 
@@ -75,7 +76,8 @@ Mastodon instances receive redirect URI at app registration time (automatic).
 At repo root:
 
 ```
-BLOB_READ_WRITE_TOKEN=...
+UPSTASH_KV_REST_API_URL=...
+UPSTASH_KV_REST_API_TOKEN=...
 X_CLIENT_ID=...          # for X send refresh
 X_CLIENT_SECRET=...
 GOOGLE_CLIENT_ID=...     # for YouTube send refresh
@@ -110,7 +112,8 @@ npm run dev:web
 `.env`:
 
 ```
-BLOB_READ_WRITE_TOKEN=...
+UPSTASH_KV_REST_API_URL=...
+UPSTASH_KV_REST_API_TOKEN=...
 OAUTH_REDIRECT_BASE=http://localhost:5173
 # ... platform secrets
 ```
@@ -137,12 +140,12 @@ npm run cli -- list --queue /tmp/queue
 - Client polls every ~55s until connect or error
 - Other auth routes complete in single request/redirect
 
-## Blob access model
+## Token store access model
 
-- **Web:** write tokens (`put`)
-- **CLI:** list + read tokens (`list`, `head`, fetch)
-- Same `BLOB_READ_WRITE_TOKEN` for both
-- Tokens are `access: 'private'`
+- **Web:** write tokens (`redis.set`)
+- **CLI:** list + read tokens (`keys` / `get`)
+- Same `UPSTASH_KV_*` credentials for both
+- Keys are private to the Redis instance (protected by the REST token)
 
 ## Troubleshooting
 
@@ -167,7 +170,7 @@ npm run cli -- list --queue /tmp/queue
 ## Security checklist
 
 - [ ] `.env` in `.gitignore`
-- [ ] `BLOB_READ_WRITE_TOKEN` only on Vercel + trusted CLI runners
+- [ ] `UPSTASH_KV_REST_API_*` credentials only on Vercel + trusted CLI runners
 - [ ] OAuth apps use minimal required scopes
 - [ ] `OAUTH_REDIRECT_BASE` is HTTPS in production
 - [ ] Bluesky uses app passwords, not main passwords

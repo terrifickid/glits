@@ -60,7 +60,7 @@ export async function GET({ url, cookies }) {
     const account = verifyRes.ok ? await verifyRes.json() : {};
     const name = account.username || 'user';
 
-    // Validate blob connection and write permission as first step before saving token
+    // Validate store connection and write permission as first step before saving token
     await validateBlobPermissions();
 
     await saveToken(tokenPath('mastodon', `${name}-${new URL(instance).hostname}`), tokenData);
