@@ -3,9 +3,13 @@ import { exchangeMetaCode, getThreadsUserId } from '$lib/auth/meta.js';
 import { redirectBase, mustEnv } from '$lib/env.js';
 import { saveToken } from '$lib/blob.js';
 import { tokenPath } from '$lib/tokens.js';
-import { authEntry, flashAuthDebug, logAuth, serializeError } from '$lib/auth/verbose.js';
+import { log, LOG_TYPE, authEntry, serializeError } from '$lib/logger.js';
+import { flashAuthDebug } from '$lib/auth/verbose.js';
+
+const fnLog = log.child({ provider: 'threads', functionName: 'threads/callback/+server.js:GET' });
 
 export async function GET({ url, cookies }) {
+  const stepLog = fnLog.child({ functionName: 'GET', phase: 'threads:callback:start' });
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
   if (!code || state !== cookies.get('meta_oauth_state_threads')) {
@@ -14,12 +18,13 @@ export async function GET({ url, cookies }) {
       stateMatch: state === cookies.get('meta_oauth_state_threads'),
       error: 'threads_auth_failed',
     });
-    logAuth('threads', 'callback:invalid', invalid);
+    stepLog.error({ type: LOG_TYPE.STATE_MISMATCH, functionName: 'GET' }, 'Threads callback invalid state/code');
     flashAuthDebug(cookies, 'threads', invalid);
     throw redirect(303, '/?error=threads_auth_failed');
   }
 
   try {
+    stepLog.info({ functionName: 'GET', phase: 'exchange:start' }, 'Starting Threads Meta exchange');
     const tokenData = await exchangeMetaCode({
       appId: mustEnv('META_APP_ID'),
       appSecret: mustEnv('META_APP_SECRET'),
@@ -27,18 +32,31 @@ export async function GET({ url, cookies }) {
       code,
     });
 
-    const threads = await getThreadsUserId(tokenData.access_token);
-    const account = threads.username || threads.threads_user_id;
-    await saveToken(tokenPath('threads', account), { ...tokenData, ...threads });
+    stepLog.info({ functionName: 'GET', phase: 'user:fetch:start' }, 'Fetching Threads user ID');
+    const threadsUser = await getThreadsUserId(tokenData.access_token);
+    const account = threadsUser.username || threadsUser.threads_user_id;
+
+    const pathname = tokenPath('threads', account);
+    stepLog.info({ functionName: 'GET', phase: 'blob:save:start', pathname }, 'Saving Threads token');
+    await saveToken(pathname, { ...tokenData, ...threadsUser });
 
     cookies.delete('meta_oauth_state_threads', { path: '/' });
 
-    logAuth('threads', 'callback:success', authEntry('success', { account }));
+    stepLog.info({ functionName: 'GET', phase: 'callback:success', account }, 'Threads connect success');
     throw redirect(303, '/?connected=threads');
   } catch (err) {
     if (err?.status === 303) throw err;
-    const failed = authEntry('failed', { error: serializeError(err) });
-    logAuth('threads', 'callback:failed', failed);
+    const serverError = err.message || 'Threads callback failed';
+    const errInfo = serializeError(err);
+    stepLog.error(
+      {
+        type: LOG_TYPE.OAUTH_EXCHANGE_ERROR,
+        functionName: 'GET',
+        err: errInfo,
+      },
+      `Threads callback failed: ${serverError}`,
+    );
+    const failed = authEntry('failed', { error: errInfo });
     flashAuthDebug(cookies, 'threads', failed);
     throw redirect(303, '/?error=threads_auth_failed');
   }

@@ -3,9 +3,13 @@ import { exchangeCode } from '$lib/oauth.js';
 import { redirectBase, mustEnv } from '$lib/env.js';
 import { saveToken } from '$lib/blob.js';
 import { tokenPath } from '$lib/tokens.js';
-import { authEntry, flashAuthDebug, logAuth, serializeError } from '$lib/auth/verbose.js';
+import { log, LOG_TYPE, authEntry, serializeError } from '$lib/logger.js';
+import { flashAuthDebug } from '$lib/auth/verbose.js';
+
+const fnLog = log.child({ provider: 'x', functionName: 'x/callback/+server.js:GET' });
 
 export async function GET({ url, cookies }) {
+  const stepLog = fnLog.child({ functionName: 'GET', phase: 'x:callback:start' });
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
   const verifier = cookies.get('x_pkce_verifier');
@@ -18,7 +22,7 @@ export async function GET({ url, cookies }) {
       stateMatch: state === expectedState,
       error: 'x_auth_failed',
     });
-    logAuth('x', 'callback:invalid', invalid);
+    stepLog.error({ type: LOG_TYPE.STATE_MISMATCH, functionName: 'GET' }, 'X callback invalid state/verifier/code');
     flashAuthDebug(cookies, 'x', invalid);
     throw redirect(303, '/?error=x_auth_failed');
   }
@@ -28,6 +32,7 @@ export async function GET({ url, cookies }) {
     const clientSecret = mustEnv('X_CLIENT_SECRET');
     const redirectUri = `${redirectBase()}/auth/x/callback`;
 
+    stepLog.info({ functionName: 'GET', phase: 'exchange:start' }, 'Starting X token exchange');
     const tokenData = await exchangeCode({
       tokenUrl: 'https://api.x.com/2/oauth2/token',
       body: {
@@ -43,6 +48,7 @@ export async function GET({ url, cookies }) {
       },
     });
 
+    stepLog.info({ functionName: 'GET', phase: 'user:fetch:start' }, 'Fetching X user');
     const meRes = await fetch('https://api.x.com/2/users/me', {
       headers: { Authorization: `Bearer ${tokenData.access_token}` },
     });
@@ -50,17 +56,28 @@ export async function GET({ url, cookies }) {
     const username = me.data?.username || me.data?.id || 'user';
 
     tokenData.username = username;
-    await saveToken(tokenPath('x', username), tokenData);
+    const pathname = tokenPath('x', username);
+    stepLog.info({ functionName: 'GET', phase: 'blob:save:start', pathname }, 'Saving X token');
+    await saveToken(pathname, tokenData);
 
     cookies.delete('x_pkce_verifier', { path: '/' });
     cookies.delete('x_oauth_state', { path: '/' });
 
-    logAuth('x', 'callback:success', authEntry('success', { username }));
+    stepLog.info({ functionName: 'GET', phase: 'callback:success', username }, 'X connect success');
     throw redirect(303, '/?connected=x');
   } catch (err) {
     if (err?.status === 303) throw err;
-    const failed = authEntry('failed', { error: serializeError(err) });
-    logAuth('x', 'callback:failed', failed);
+    const serverError = err.message || 'X callback failed';
+    const errInfo = serializeError(err);
+    stepLog.error(
+      {
+        type: LOG_TYPE.OAUTH_EXCHANGE_ERROR,
+        functionName: 'GET',
+        err: errInfo,
+      },
+      `X callback failed: ${serverError}`,
+    );
+    const failed = authEntry('failed', { error: errInfo });
     flashAuthDebug(cookies, 'x', failed);
     throw redirect(303, '/?error=x_auth_failed');
   }

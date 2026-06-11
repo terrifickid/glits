@@ -15,15 +15,15 @@ export async function saveToken(pathname, data) {
     });
     stepLog.info({ phase: 'blob:save:success' }, 'Vercel Blob save succeeded');
   } catch (err) {
-    const errInfo = serializeError(err, 'saveToken');
+    const serverError = err.message || 'Vercel Blob save failed';
+    const errInfo = serializeError(err);
     stepLog.error(
       {
         type: LOG_TYPE.BLOB_ERROR,
-        functionName: 'saveToken',
         err: errInfo,
         pathname,
       },
-      'Vercel Blob save failed',
+      `Vercel Blob save failed: ${serverError}`,
     );
     throw err;
   }
@@ -39,24 +39,34 @@ export async function loadToken(pathname) {
     const meta = await head(pathname);
     const res = await fetch(meta.downloadUrl);
     if (!res.ok) {
-      const err = new Error(`Failed to read blob ${pathname}: ${res.status}`);
+      const serverError = `Failed to read blob ${pathname}: ${res.status}`;
+      const err = new Error(serverError);
       err.status = res.status;
       err.pathname = pathname;
+      const errInfo = serializeError(err);
+      stepLog.error(
+        {
+          type: LOG_TYPE.BLOB_ERROR,
+          err: errInfo,
+          pathname,
+        },
+        `Vercel Blob load failed: ${serverError}`,
+      );
       throw err;
     }
     const token = JSON.parse(await res.text());
     stepLog.info({ phase: 'blob:load:success', hasAccessToken: !!token?.access_token }, 'Vercel Blob load succeeded');
     return token;
   } catch (err) {
-    const errInfo = serializeError(err, 'loadToken');
+    const serverError = err.message || 'Vercel Blob load failed';
+    const errInfo = serializeError(err);
     stepLog.error(
       {
         type: LOG_TYPE.BLOB_ERROR,
-        functionName: 'loadToken',
         err: errInfo,
         pathname,
       },
-      'Vercel Blob load failed',
+      `Vercel Blob load failed: ${serverError}`,
     );
     throw err;
   }

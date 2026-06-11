@@ -50,8 +50,16 @@ export async function exchangeMetaCode({ appId, appSecret, redirectUri, code }) 
         : undefined,
     };
   } catch (err) {
-    const errInfo = serializeError(err, 'exchangeMetaCode');
-    stepLog.error({ type: LOG_TYPE.OAUTH_EXCHANGE_ERROR, functionName: 'exchangeMetaCode', err: errInfo }, 'Meta code exchange failed');
+    const serverError = err.message || 'Meta exchange failed';
+    const errInfo = serializeError(err);
+    stepLog.error(
+      {
+        type: LOG_TYPE.OAUTH_EXCHANGE_ERROR,
+        functionName: 'exchangeMetaCode',
+        err: errInfo,
+      },
+      `Meta code exchange failed: ${serverError}`,
+    );
     throw err;
   }
 }
@@ -67,8 +75,9 @@ export async function getInstagramUserId(accessToken) {
     );
     const page = pages.data?.find((p) => p.instagram_business_account?.id);
     if (!page) {
-      stepLog.error({ type: LOG_TYPE.VALIDATION_ERROR, functionName: 'getInstagramUserId' }, 'No Instagram Business account linked');
-      throw new Error('No Instagram Business account linked to a Facebook Page');
+      const msg = 'No Instagram Business account linked to a Facebook Page';
+      stepLog.error({ type: LOG_TYPE.VALIDATION_ERROR }, msg);
+      throw new Error(msg);
     }
     stepLog.info({ phase: 'meta:ig:user:fetch:success' }, 'Instagram user ID fetched');
     return {
@@ -77,8 +86,15 @@ export async function getInstagramUserId(accessToken) {
       page_name: page.name,
     };
   } catch (err) {
-    const errInfo = serializeError(err, 'getInstagramUserId');
-    stepLog.error({ type: LOG_TYPE.USER_FETCH_ERROR, functionName: 'getInstagramUserId', err: errInfo }, 'IG user fetch failed');
+    const serverError = err.message || 'IG user fetch failed';
+    const errInfo = serializeError(err);
+    stepLog.error(
+      {
+        type: LOG_TYPE.USER_FETCH_ERROR,
+        err: errInfo,
+      },
+      `IG user fetch failed: ${serverError}`,
+    );
     throw err;
   }
 }
@@ -95,8 +111,15 @@ export async function getThreadsUserId(accessToken) {
     stepLog.info({ phase: 'meta:threads:user:fetch:success' }, 'Threads user ID fetched');
     return { threads_user_id: me.id, username: me.username };
   } catch (err) {
-    const errInfo = serializeError(err, 'getThreadsUserId');
-    stepLog.error({ type: LOG_TYPE.USER_FETCH_ERROR, functionName: 'getThreadsUserId', err: errInfo }, 'Threads user fetch failed');
+    const serverError = err.message || 'Threads user fetch failed';
+    const errInfo = serializeError(err);
+    stepLog.error(
+      {
+        type: LOG_TYPE.USER_FETCH_ERROR,
+        err: errInfo,
+      },
+      `Threads user fetch failed: ${serverError}`,
+    );
     throw err;
   }
 }
@@ -112,8 +135,9 @@ export async function getFacebookPage(accessToken) {
     );
     const page = pages.data?.[0];
     if (!page) {
-      stepLog.error({ type: LOG_TYPE.VALIDATION_ERROR, functionName: 'getFacebookPage' }, 'No Facebook Page found');
-      throw new Error('No Facebook Page found for this account');
+      const msg = 'No Facebook Page found for this account';
+      stepLog.error({ type: LOG_TYPE.VALIDATION_ERROR }, msg);
+      throw new Error(msg);
     }
     stepLog.info({ phase: 'meta:fb:page:fetch:success' }, 'Facebook Page fetched');
     return {
@@ -122,8 +146,15 @@ export async function getFacebookPage(accessToken) {
       page_access_token: page.access_token,
     };
   } catch (err) {
-    const errInfo = serializeError(err, 'getFacebookPage');
-    stepLog.error({ type: LOG_TYPE.USER_FETCH_ERROR, functionName: 'getFacebookPage', err: errInfo }, 'FB page fetch failed');
+    const serverError = err.message || 'FB page fetch failed';
+    const errInfo = serializeError(err);
+    stepLog.error(
+      {
+        type: LOG_TYPE.USER_FETCH_ERROR,
+        err: errInfo,
+      },
+      `FB page fetch failed: ${serverError}`,
+    );
     throw err;
   }
 }

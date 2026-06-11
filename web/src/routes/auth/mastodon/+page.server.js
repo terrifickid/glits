@@ -1,12 +1,18 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { randomState } from '$lib/oauth.js';
 import { redirectBase } from '$lib/env.js';
-import { authEntry, logAuth, serializeError } from '$lib/auth/verbose.js';
+import { log, LOG_TYPE, authEntry, serializeError } from '$lib/logger.js';
 import { readAuthDebug } from '$lib/auth/load-debug.js';
+import { flashAuthDebug } from '$lib/auth/verbose.js';
+
+const fnLog = log.child({ provider: 'mastodon', functionName: 'mastodon/+page.server.js' });
 
 export function load({ url, cookies }) {
   const error = url.searchParams.get('error');
-  if (error) logAuth('mastodon', 'callback:error', authEntry('failed', { error, source: 'query' }));
+  if (error) {
+    const stepLog = fnLog.child({ functionName: 'load' });
+    stepLog.error({ type: LOG_TYPE.OAUTH_EXCHANGE_ERROR }, `Mastodon callback error from query: ${error}`);
+  }
   return { error, authDebug: readAuthDebug(cookies) };
 }
 
@@ -20,14 +26,16 @@ export const actions = {
   start: async ({ request, cookies }) => {
     const form = await request.formData();
     const instance = normalizeInstance(String(form.get('instance') || ''));
-    const verbose = [authEntry('request', { instance, hasInstance: Boolean(instance) })];
-    logAuth('mastodon', 'request', verbose[0]);
+    const stepLog = fnLog.child({ functionName: 'start', phase: 'mastodon:start' });
+    stepLog.info({ instancePresent: Boolean(instance) }, 'Mastodon start action');
 
     if (!instance) {
-      return fail(400, { error: 'Instance required', instance, verbose });
+      stepLog.error({ type: LOG_TYPE.VALIDATION_ERROR }, 'Instance required');
+      return fail(400, { error: 'Instance required', instance });
     }
 
     try {
+      stepLog.info({ phase: 'mastodon:app:register:start' }, 'Registering app with Mastodon instance');
       const appRes = await fetch(`${instance}/api/v1/apps`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -40,15 +48,15 @@ export const actions = {
       });
 
       if (!appRes.ok) {
-        const failed = authEntry('failed', {
-          instance,
-          status: appRes.status,
-          statusText: appRes.statusText,
-          error: 'Failed to register app with instance',
-        });
-        verbose.push(failed);
-        logAuth('mastodon', 'failed', failed);
-        return fail(400, { error: 'Failed to register app with instance', instance, verbose });
+        const serverError = `Failed to register app with instance (status ${appRes.status})`;
+        stepLog.error(
+          {
+            type: LOG_TYPE.OAUTH_EXCHANGE_ERROR,
+            status: appRes.status,
+          },
+          `Mastodon app registration failed: ${serverError}`,
+        );
+        return fail(400, { error: 'Failed to register app with instance', instance });
       }
 
       const app = await appRes.json();
@@ -67,21 +75,22 @@ export const actions = {
         state,
       });
 
-      const redirectEntry = authEntry('oauth:redirect', { instance, state });
-      verbose.push(redirectEntry);
-      logAuth('mastodon', 'oauth:redirect', redirectEntry);
-
+      stepLog.info({ phase: 'oauth:redirect', instance, state }, 'Mastodon OAuth redirect initiated');
       throw redirect(302, `${instance}/oauth/authorize?${params}`);
     } catch (err) {
       if (err?.status === 302 || err?.status === 303) throw err;
 
-      const failed = authEntry('failed', {
-        instance,
-        error: serializeError(err),
-      });
-      verbose.push(failed);
-      logAuth('mastodon', 'failed', failed);
-      return fail(500, { error: err.message || 'Authorization failed', instance, verbose });
+      const serverError = err.message || 'Authorization failed';
+      const errInfo = serializeError(err);
+      stepLog.error(
+        {
+          type: LOG_TYPE.OAUTH_EXCHANGE_ERROR,
+          err: errInfo,
+          instance,
+        },
+        `Mastodon authorization failed: ${serverError}`,
+      );
+      return fail(500, { error: serverError, instance });
     }
   },
 };

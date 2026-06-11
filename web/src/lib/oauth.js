@@ -33,9 +33,9 @@ export async function exchangeCode({
     const data = await res.json();
 
     if (!res.ok) {
+      const serverError = data.error_description || data.error || res.statusText;
       const errInfo = serializeError(
-        { message: data.error_description || data.error || res.statusText, status: res.status, data },
-        'exchangeCode',
+        { message: serverError, status: res.status, data },
       );
       stepLog.error(
         {
@@ -44,9 +44,9 @@ export async function exchangeCode({
           err: errInfo,
           tokenUrl,
         },
-        'OAuth token exchange failed',
+        `OAuth token exchange failed: ${serverError}`,
       );
-      throw new Error(data.error_description || data.error || res.statusText);
+      throw new Error(serverError);
     }
 
     const enriched = {
@@ -62,18 +62,17 @@ export async function exchangeCode({
     );
     return enriched;
   } catch (err) {
-    if (!err.type) { // if not already logged
-      const errInfo = serializeError(err, 'exchangeCode');
-      stepLog.error(
-        {
-          type: LOG_TYPE.OAUTH_EXCHANGE_ERROR,
-          functionName: 'exchangeCode',
-          err: errInfo,
-          tokenUrl,
-        },
-        'OAuth token exchange error',
-      );
-    }
+    const serverError = err.message || 'unknown exchange error';
+    const errInfo = serializeError(err);
+    stepLog.error(
+      {
+        type: LOG_TYPE.OAUTH_EXCHANGE_ERROR,
+        functionName: 'exchangeCode',
+        err: errInfo,
+        tokenUrl,
+      },
+      `OAuth token exchange error: ${serverError}`,
+    );
     throw err;
   }
 }
@@ -87,9 +86,9 @@ export async function fetchJson(url, options = {}) {
     const res = await fetch(url, options);
     const data = await res.json();
     if (!res.ok) {
+      const serverError = data.error?.message || data.error_description || data.message || res.statusText;
       const errInfo = serializeError(
-        { message: data.error?.message || data.error_description || data.message || res.statusText, status: res.status, data },
-        'fetchJson',
+        { message: serverError, status: res.status, data },
       );
       stepLog.error(
         {
@@ -98,15 +97,24 @@ export async function fetchJson(url, options = {}) {
           err: errInfo,
           url,
         },
-        'fetchJson failed',
+        `fetchJson failed: ${serverError}`,
       );
-      throw new Error(data.error?.message || data.error_description || data.message || res.statusText);
+      throw new Error(serverError);
     }
     stepLog.debug({ phase: 'fetch:success' }, 'fetchJson succeeded');
     return data;
   } catch (err) {
-    const errInfo = serializeError(err, 'fetchJson');
-    stepLog.error({ type: LOG_TYPE.OAUTH_EXCHANGE_ERROR, functionName: 'fetchJson', err: errInfo, url }, 'fetchJson error');
+    const serverError = err.message || 'unknown fetch error';
+    const errInfo = serializeError(err);
+    stepLog.error(
+      {
+        type: LOG_TYPE.OAUTH_EXCHANGE_ERROR,
+        functionName: 'fetchJson',
+        err: errInfo,
+        url,
+      },
+      `fetchJson error: ${serverError}`,
+    );
     throw err;
   }
 }

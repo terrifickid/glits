@@ -125,7 +125,8 @@ export async function sendCommand(opts) {
       } catch (err) {
         anyFailed = true;
         const errInfo = serializeError(err);
-        results.push({ token: token.pathname, status: 'failed', error: errInfo.message, errorDetails: errInfo });
+        const serverError = errInfo.message || 'platform send failed';
+        results.push({ token: token.pathname, status: 'failed', error: serverError, errorDetails: errInfo });
         tokenLog.error(
           {
             type: ERROR_TYPE.PLATFORM_ERROR,
@@ -133,7 +134,7 @@ export async function sendCommand(opts) {
             err: errInfo,
             postId: post.id,
           },
-          'platform.send failed for token',
+          `platform.send failed for token: ${serverError}`,
         );
       }
     }
@@ -142,20 +143,23 @@ export async function sendCommand(opts) {
 
     if (anyFailed && results.some((r) => r.status === 'sent')) {
       post.status = 'failed';
-      post.error = 'Partial failure — some accounts failed';
+      const firstErr = results.find((r) => r.error)?.error || 'Partial failure';
+      post.error = firstErr;
+      post.errorDetails = results.find((r) => r.errorDetails)?.errorDetails || null;
       failed++;
       fileLog.error(
         { type: ERROR_TYPE.SEND_PARTIAL, results: results.map((r) => ({ token: r.token, status: r.status, error: r.error })) },
-        'partial failure for queue file',
+        `Partial failure for queue file: ${firstErr}`,
       );
     } else if (anyFailed) {
       post.status = 'failed';
-      post.error = results.find((r) => r.error)?.error || 'Send failed';
+      const firstErr = results.find((r) => r.error)?.error || 'Send failed';
+      post.error = firstErr;
       post.errorDetails = results.find((r) => r.errorDetails)?.errorDetails || null;
       failed++;
       fileLog.error(
         { type: ERROR_TYPE.SEND_FAILED, error: post.error, results },
-        'send failed for queue file',
+        `Send failed for queue file: ${firstErr}`,
       );
     } else {
       post.status = opts.dryRun ? 'queued' : 'sent';
