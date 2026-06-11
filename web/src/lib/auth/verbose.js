@@ -35,3 +35,15 @@ export function logAuth(provider, phase, payload) {
 export function authEntry(phase, data = {}) {
   return { phase, ...data };
 }
+
+export function flashAuthDebug(cookies, provider, payload) {
+  try {
+    cookies.set(
+      'glits_auth_debug',
+      JSON.stringify({ provider, ...payload }),
+      { path: '/', httpOnly: true, maxAge: 120, sameSite: 'lax' },
+    );
+  } catch {
+    // ignore oversized payloads
+  }
+}

@@ -3,17 +3,19 @@ import { exchangeCode } from '$lib/oauth.js';
 import { redirectBase, mustEnv } from '$lib/env.js';
 import { saveToken } from '$lib/blob.js';
 import { tokenPath } from '$lib/tokens.js';
-import { authEntry, logAuth, serializeError } from '$lib/auth/verbose.js';
+import { authEntry, flashAuthDebug, logAuth, serializeError } from '$lib/auth/verbose.js';
 
 export async function GET({ url, cookies }) {
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
   if (!code || state !== cookies.get('google_oauth_state')) {
-    logAuth('youtube', 'callback:invalid', authEntry('failed', {
+    const invalid = authEntry('failed', {
       hasCode: Boolean(code),
       stateMatch: state === cookies.get('google_oauth_state'),
       error: 'youtube_auth_failed',
-    }));
+    });
+    logAuth('youtube', 'callback:invalid', invalid);
+    flashAuthDebug(cookies, 'youtube', invalid);
     throw redirect(303, '/?error=youtube_auth_failed');
   }
 
@@ -43,7 +45,9 @@ export async function GET({ url, cookies }) {
     throw redirect(303, '/?connected=youtube');
   } catch (err) {
     if (err?.status === 303) throw err;
-    logAuth('youtube', 'callback:failed', authEntry('failed', { error: serializeError(err) }));
+    const failed = authEntry('failed', { error: serializeError(err) });
+    logAuth('youtube', 'callback:failed', failed);
+    flashAuthDebug(cookies, 'youtube', failed);
     throw redirect(303, '/?error=youtube_auth_failed');
   }
 }

@@ -2,11 +2,12 @@ import { fail, redirect } from '@sveltejs/kit';
 import { randomState } from '$lib/oauth.js';
 import { redirectBase } from '$lib/env.js';
 import { authEntry, logAuth, serializeError } from '$lib/auth/verbose.js';
+import { readAuthDebug } from '$lib/auth/load-debug.js';
 
-export function load({ url }) {
+export function load({ url, cookies }) {
   const error = url.searchParams.get('error');
   if (error) logAuth('mastodon', 'callback:error', authEntry('failed', { error, source: 'query' }));
-  return { error };
+  return { error, authDebug: readAuthDebug(cookies) };
 }
 
 function normalizeInstance(input) {

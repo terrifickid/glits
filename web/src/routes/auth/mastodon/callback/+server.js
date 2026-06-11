@@ -2,19 +2,23 @@ import { redirect } from '@sveltejs/kit';
 import { redirectBase } from '$lib/env.js';
 import { saveToken } from '$lib/blob.js';
 import { tokenPath } from '$lib/tokens.js';
-import { authEntry, logAuth, serializeError } from '$lib/auth/verbose.js';
+import { authEntry, flashAuthDebug, logAuth, serializeError } from '$lib/auth/verbose.js';
 
 export async function GET({ url, cookies }) {
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
 
   if (!code) {
-    logAuth('mastodon', 'callback:invalid', authEntry('failed', { error: 'missing_code' }));
+    const missingCode = authEntry('failed', { error: 'missing_code' });
+    logAuth('mastodon', 'callback:invalid', missingCode);
+    flashAuthDebug(cookies, 'mastodon', missingCode);
     throw redirect(303, '/auth/mastodon?error=missing_code');
   }
 
   if (state !== cookies.get('mastodon_oauth_state')) {
-    logAuth('mastodon', 'callback:invalid', authEntry('failed', { error: 'state' }));
+    const badState = authEntry('failed', { error: 'state' });
+    logAuth('mastodon', 'callback:invalid', badState);
+    flashAuthDebug(cookies, 'mastodon', badState);
     throw redirect(303, '/auth/mastodon?error=state');
   }
 
@@ -36,11 +40,13 @@ export async function GET({ url, cookies }) {
     });
 
     if (!tokenRes.ok) {
-      logAuth('mastodon', 'callback:failed', authEntry('failed', {
+      const tokenFailed = authEntry('failed', {
         error: 'token',
         status: tokenRes.status,
         statusText: tokenRes.statusText,
-      }));
+      });
+      logAuth('mastodon', 'callback:failed', tokenFailed);
+      flashAuthDebug(cookies, 'mastodon', tokenFailed);
       throw redirect(303, '/auth/mastodon?error=token');
     }
 
@@ -65,7 +71,9 @@ export async function GET({ url, cookies }) {
     throw redirect(303, '/?connected=mastodon');
   } catch (err) {
     if (err?.status === 303) throw err;
-    logAuth('mastodon', 'callback:failed', authEntry('failed', { error: serializeError(err) }));
+    const failed = authEntry('failed', { error: serializeError(err) });
+    logAuth('mastodon', 'callback:failed', failed);
+    flashAuthDebug(cookies, 'mastodon', failed);
     throw redirect(303, '/auth/mastodon?error=token');
   }
 }

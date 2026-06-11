@@ -1,4 +1,4 @@
-import { logAuthClient, logAuthQueryError } from '$lib/auth/client-log.js';
+import { logAuthClient, logServerResponse } from '$lib/auth/client-log.js';
 
 export function startNostrPolling(session, onUpdate) {
   if (!session) return () => {};
@@ -22,12 +22,12 @@ export function startNostrPolling(session, onUpdate) {
         if (res.status === 408) continue;
 
         const error = body.error || 'Connection failed';
-        logAuthQueryError('nostr', error, { status: res.status, body });
+        logServerResponse('nostr', { phase: 'failed', error, status: res.status, body });
         onUpdate({ status: 'error', error });
         return;
       } catch (err) {
         const error = err.message || 'Connection failed';
-        logAuthQueryError('nostr', error, { error: err });
+        logServerResponse('nostr', { phase: 'failed', error, err });
         onUpdate({ status: 'error', error });
         return;
       }

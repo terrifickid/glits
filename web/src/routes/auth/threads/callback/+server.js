@@ -3,17 +3,19 @@ import { exchangeMetaCode, getThreadsUserId } from '$lib/auth/meta.js';
 import { redirectBase, mustEnv } from '$lib/env.js';
 import { saveToken } from '$lib/blob.js';
 import { tokenPath } from '$lib/tokens.js';
-import { authEntry, logAuth, serializeError } from '$lib/auth/verbose.js';
+import { authEntry, flashAuthDebug, logAuth, serializeError } from '$lib/auth/verbose.js';
 
 export async function GET({ url, cookies }) {
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
   if (!code || state !== cookies.get('meta_oauth_state_threads')) {
-    logAuth('threads', 'callback:invalid', authEntry('failed', {
+    const invalid = authEntry('failed', {
       hasCode: Boolean(code),
       stateMatch: state === cookies.get('meta_oauth_state_threads'),
       error: 'threads_auth_failed',
-    }));
+    });
+    logAuth('threads', 'callback:invalid', invalid);
+    flashAuthDebug(cookies, 'threads', invalid);
     throw redirect(303, '/?error=threads_auth_failed');
   }
 
@@ -35,7 +37,9 @@ export async function GET({ url, cookies }) {
     throw redirect(303, '/?connected=threads');
   } catch (err) {
     if (err?.status === 303) throw err;
-    logAuth('threads', 'callback:failed', authEntry('failed', { error: serializeError(err) }));
+    const failed = authEntry('failed', { error: serializeError(err) });
+    logAuth('threads', 'callback:failed', failed);
+    flashAuthDebug(cookies, 'threads', failed);
     throw redirect(303, '/?error=threads_auth_failed');
   }
 }

@@ -1,7 +1,10 @@
 <script>
-  import { blueskyFormEnhance } from './bluesky-client.js';
+  import { onMount } from 'svelte';
+  import { blueskyFormEnhance, logBlueskyPageAuth } from './bluesky-client.js';
 
   let { data, form } = $props();
+
+  onMount(() => logBlueskyPageAuth({ data, form }));
 </script>
 
 <div class="card">

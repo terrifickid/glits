@@ -3,17 +3,19 @@ import { exchangeMetaCode, getFacebookPage } from '$lib/auth/meta.js';
 import { redirectBase, mustEnv } from '$lib/env.js';
 import { saveToken } from '$lib/blob.js';
 import { tokenPath } from '$lib/tokens.js';
-import { authEntry, logAuth, serializeError } from '$lib/auth/verbose.js';
+import { authEntry, flashAuthDebug, logAuth, serializeError } from '$lib/auth/verbose.js';
 
 export async function GET({ url, cookies }) {
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
   if (!code || state !== cookies.get('meta_oauth_state_facebook')) {
-    logAuth('facebook', 'callback:invalid', authEntry('failed', {
+    const invalid = authEntry('failed', {
       hasCode: Boolean(code),
       stateMatch: state === cookies.get('meta_oauth_state_facebook'),
       error: 'facebook_auth_failed',
-    }));
+    });
+    logAuth('facebook', 'callback:invalid', invalid);
+    flashAuthDebug(cookies, 'facebook', invalid);
     throw redirect(303, '/?error=facebook_auth_failed');
   }
 
@@ -35,7 +37,9 @@ export async function GET({ url, cookies }) {
     throw redirect(303, '/?connected=facebook');
   } catch (err) {
     if (err?.status === 303) throw err;
-    logAuth('facebook', 'callback:failed', authEntry('failed', { error: serializeError(err) }));
+    const failed = authEntry('failed', { error: serializeError(err) });
+    logAuth('facebook', 'callback:failed', failed);
+    flashAuthDebug(cookies, 'facebook', failed);
     throw redirect(303, '/?error=facebook_auth_failed');
   }
 }

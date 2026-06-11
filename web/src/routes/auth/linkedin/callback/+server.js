@@ -3,17 +3,19 @@ import { exchangeCode } from '$lib/oauth.js';
 import { redirectBase, mustEnv } from '$lib/env.js';
 import { saveToken } from '$lib/blob.js';
 import { tokenPath } from '$lib/tokens.js';
-import { authEntry, logAuth, serializeError } from '$lib/auth/verbose.js';
+import { authEntry, flashAuthDebug, logAuth, serializeError } from '$lib/auth/verbose.js';
 
 export async function GET({ url, cookies }) {
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
   if (!code || state !== cookies.get('linkedin_oauth_state')) {
-    logAuth('linkedin', 'callback:invalid', authEntry('failed', {
+    const invalid = authEntry('failed', {
       hasCode: Boolean(code),
       stateMatch: state === cookies.get('linkedin_oauth_state'),
       error: 'linkedin_auth_failed',
-    }));
+    });
+    logAuth('linkedin', 'callback:invalid', invalid);
+    flashAuthDebug(cookies, 'linkedin', invalid);
     throw redirect(303, '/?error=linkedin_auth_failed');
   }
 
@@ -43,7 +45,9 @@ export async function GET({ url, cookies }) {
     throw redirect(303, '/?connected=linkedin');
   } catch (err) {
     if (err?.status === 303) throw err;
-    logAuth('linkedin', 'callback:failed', authEntry('failed', { error: serializeError(err) }));
+    const failed = authEntry('failed', { error: serializeError(err) });
+    logAuth('linkedin', 'callback:failed', failed);
+    flashAuthDebug(cookies, 'linkedin', failed);
     throw redirect(303, '/?error=linkedin_auth_failed');
   }
 }

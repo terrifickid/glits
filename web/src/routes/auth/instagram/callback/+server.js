@@ -3,17 +3,19 @@ import { exchangeMetaCode, getInstagramUserId } from '$lib/auth/meta.js';
 import { redirectBase, mustEnv } from '$lib/env.js';
 import { saveToken } from '$lib/blob.js';
 import { tokenPath } from '$lib/tokens.js';
-import { authEntry, logAuth, serializeError } from '$lib/auth/verbose.js';
+import { authEntry, flashAuthDebug, logAuth, serializeError } from '$lib/auth/verbose.js';
 
 export async function GET({ url, cookies }) {
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
   if (!code || state !== cookies.get('meta_oauth_state_instagram')) {
-    logAuth('instagram', 'callback:invalid', authEntry('failed', {
+    const invalid = authEntry('failed', {
       hasCode: Boolean(code),
       stateMatch: state === cookies.get('meta_oauth_state_instagram'),
       error: 'instagram_auth_failed',
-    }));
+    });
+    logAuth('instagram', 'callback:invalid', invalid);
+    flashAuthDebug(cookies, 'instagram', invalid);
     throw redirect(303, '/?error=instagram_auth_failed');
   }
 
@@ -35,7 +37,9 @@ export async function GET({ url, cookies }) {
     throw redirect(303, '/?connected=instagram');
   } catch (err) {
     if (err?.status === 303) throw err;
-    logAuth('instagram', 'callback:failed', authEntry('failed', { error: serializeError(err) }));
+    const failed = authEntry('failed', { error: serializeError(err) });
+    logAuth('instagram', 'callback:failed', failed);
+    flashAuthDebug(cookies, 'instagram', failed);
     throw redirect(303, '/?error=instagram_auth_failed');
   }
 }
