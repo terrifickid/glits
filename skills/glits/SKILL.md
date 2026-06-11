@@ -27,9 +27,9 @@ Multi-platform social posting from public cloud URLs. CLI is bundled in this ski
 hermes skills install terrifickid/glits/glits
 ```
 
-Put secrets in `~/.hermes/.env` (`BLOB_READ_WRITE_TOKEN`, OAuth refresh vars for X/YouTube/LinkedIn). Add them to `terminal.env_passthrough` in `~/.hermes/config.yaml`.
+Hermes prompts for required secrets on first use.
 
-Connect accounts once via the glits web auth app (deployed from the same GitHub repo). Edit platforms in the installed skill's `glits.config.js` (`~/.hermes/skills/glits/glits.config.js`).
+Connect accounts once via the glits web auth app (deployed from the same GitHub repo). Edit platforms in the installed skill's `glits.config.js`.
 
 ## Commands
 
