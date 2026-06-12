@@ -75,15 +75,22 @@ function summarizeToken(pathname, data) {
     'unknown';
 
   // Compute expiry using the shared pure function (works even without client secrets)
+  // For OAuth1 X tokens there is no refresh/expiry — treat as valid (until revoked)
   let expired = null;
   let expires_at = data.expires_at || null;
-  if (!expires_at && data.obtained_at && data.expires_in) {
-    expires_at = new Date(new Date(data.obtained_at).getTime() + Number(data.expires_in) * 1000).toISOString();
-  }
-  try {
-    expired = isExpired(data);
-  } catch {
-    expired = null;
+  const isXOAuth1 = platform === 'x' && data.oauth_token && !data.refresh_token;
+  if (isXOAuth1) {
+    expires_at = null;
+    expired = false;
+  } else {
+    if (!expires_at && data.obtained_at && data.expires_in) {
+      expires_at = new Date(new Date(data.obtained_at).getTime() + Number(data.expires_in) * 1000).toISOString();
+    }
+    try {
+      expired = isExpired(data);
+    } catch {
+      expired = null;
+    }
   }
 
   const status = expired === true ? 'expired' : (expired === false ? 'valid' : 'unknown');
@@ -95,7 +102,7 @@ function summarizeToken(pathname, data) {
     obtained_at: data.obtained_at || null,
     expires_at,
     expired,
-    has_refresh_token: !!data.refresh_token,
+    has_refresh_token: !!data.refresh_token && !isXOAuth1,
     status,
   };
 }

@@ -1,8 +1,11 @@
 import { downloadUrl, isVideoMime } from '../lib/media.js';
-import { fetchJson } from '../lib/http.js';
-import { ensureAccessToken, refreshOAuthToken } from '../lib/oauth-token.js';
+import { fetchJson, formBody } from '../lib/http.js';
+import { buildAuthHeader } from '../lib/oauth1.js';
 
 export const name = 'x';
+
+const CONSUMER_KEY = process.env.X_CONSUMER_KEY;
+const CONSUMER_SECRET = process.env.X_CONSUMER_SECRET;
 
 export function buildPost(opts) {
   const media_urls = [...(opts.imageUrls || []), ...(opts.videoUrls || [])].filter(Boolean);
@@ -21,26 +24,30 @@ export function buildPost(opts) {
   };
 }
 
-async function refreshToken(tokenData) {
-  return refreshOAuthToken(tokenData, {
-    tokenUrl: 'https://api.x.com/2/oauth2/token',
-    clientId: process.env.X_CLIENT_ID,
-    clientSecret: process.env.X_CLIENT_SECRET,
-    refreshToken: tokenData.refresh_token,
-  });
-}
-
-async function uploadMedia(accessToken, url) {
+async function uploadMedia(tokenData, url) {
   const { buffer, mimeType } = await downloadUrl(url);
   const category = isVideoMime(mimeType) ? 'tweet_video' : 'tweet_image';
 
+  const uploadUrl = 'https://api.x.com/2/media/upload';
   const form = new FormData();
   form.append('media', new Blob([buffer], { type: mimeType }), 'media');
-  form.append('media_category', category);
+  if (category) form.append('media_category', category);
 
-  const res = await fetch('https://api.x.com/2/media/upload', {
+  // Sign only the non-file params (per X OAuth1 docs for multipart)
+  const extraParams = category ? { media_category: category } : {};
+  const authHeader = buildAuthHeader({
+    consumerKey: CONSUMER_KEY,
+    consumerSecret: CONSUMER_SECRET,
+    token: tokenData.oauth_token,
+    tokenSecret: tokenData.oauth_token_secret,
     method: 'POST',
-    headers: { Authorization: `Bearer ${accessToken}` },
+    url: uploadUrl,
+    extraParams,
+  });
+
+  const res = await fetch(uploadUrl, {
+    method: 'POST',
+    headers: { Authorization: authHeader },
     body: form,
   });
 
@@ -54,22 +61,30 @@ async function uploadMedia(accessToken, url) {
 export async function send(post, tokenData, { dryRun = false } = {}) {
   if (dryRun) return { platform_post_id: 'dry-run' };
 
-  const token = await ensureAccessToken(tokenData, refreshToken);
-  const accessToken = token.access_token;
-
+  const tweetUrl = 'https://api.x.com/2/tweets';
   const body = { ...post.payload };
+
   if (post.media_urls?.length) {
     const media_ids = [];
     for (const url of post.media_urls) {
-      media_ids.push(await uploadMedia(accessToken, url));
+      media_ids.push(await uploadMedia(tokenData, url));
     }
     body.media = { media_ids };
   }
 
-  const data = await fetchJson('https://api.x.com/2/tweets', {
+  const authHeader = buildAuthHeader({
+    consumerKey: CONSUMER_KEY,
+    consumerSecret: CONSUMER_SECRET,
+    token: tokenData.oauth_token,
+    tokenSecret: tokenData.oauth_token_secret,
+    method: 'POST',
+    url: tweetUrl,
+  });
+
+  const data = await fetchJson(tweetUrl, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${accessToken}`,
+      Authorization: authHeader,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),

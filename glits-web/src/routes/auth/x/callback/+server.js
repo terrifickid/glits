@@ -1,61 +1,110 @@
 import { redirect } from '@sveltejs/kit';
-import { exchangeCode } from '$lib/oauth.js';
 import { redirectBase, mustEnv } from '$lib/env.js';
 import { saveToken, validateBlobPermissions } from '$lib/blob.js';
 import { tokenPath } from '$lib/tokens.js';
 import { log, LOG_TYPE, authEntry, serializeError } from '$lib/logger.js';
 import { flashAuthDebug } from '$lib/auth/verbose.js';
+import { buildAuthHeader } from '$lib/oauth1.js';
 
 const fnLog = log.child({ provider: 'x', functionName: 'x/callback/+server.js:GET' });
 
+// Elemental OAuth 1.0a callback (Step 3 per exact X docs, no PKCE)
 export async function GET({ url, cookies }) {
   const stepLog = fnLog.child({ functionName: 'GET', phase: 'x:callback:start' });
-  const code = url.searchParams.get('code');
+  const oauthToken = url.searchParams.get('oauth_token');
+  const oauthVerifier = url.searchParams.get('oauth_verifier');
   const state = url.searchParams.get('state');
-  const verifier = cookies.get('x_pkce_verifier');
+  const tempSecret = cookies.get('x_oauth1_temp_secret');
   const expectedState = cookies.get('x_oauth_state');
 
-  if (!code || !verifier || state !== expectedState) {
+  if (!oauthToken || !oauthVerifier || !tempSecret || state !== expectedState) {
     const invalid = authEntry('failed', {
-      hasCode: Boolean(code),
-      hasVerifier: Boolean(verifier),
+      hasOauthToken: Boolean(oauthToken),
+      hasVerifier: Boolean(oauthVerifier),
+      hasTempSecret: Boolean(tempSecret),
       stateMatch: state === expectedState,
       error: 'x_auth_failed',
     });
-    stepLog.error({ type: LOG_TYPE.STATE_MISMATCH, functionName: 'GET' }, 'X callback invalid state/verifier/code');
+    stepLog.error({ type: LOG_TYPE.STATE_MISMATCH, functionName: 'GET' }, 'X callback invalid oauth1 state/verifier');
     flashAuthDebug(cookies, 'x', invalid);
     throw redirect(303, '/?error=x_auth_failed');
   }
 
   try {
-    const clientId = mustEnv('X_CLIENT_ID');
-    const clientSecret = mustEnv('X_CLIENT_SECRET');
-    const redirectUri = `${redirectBase()}/auth/x/callback`;
+    const consumerKey = mustEnv('X_CONSUMER_KEY');
+    const consumerSecret = mustEnv('X_CONSUMER_SECRET');
 
-    stepLog.info({ functionName: 'GET', phase: 'exchange:start' }, 'Starting X token exchange');
-    const tokenData = await exchangeCode({
-      tokenUrl: 'https://api.x.com/2/oauth2/token',
-      body: {
-        grant_type: 'authorization_code',
-        code,
-        redirect_uri: redirectUri,
-        code_verifier: verifier,
-        client_id: clientId,
-      },
+    // Step 3: POST oauth/access_token (signed with consumer + temp secret + verifier)
+    const accessTokenUrl = 'https://api.x.com/oauth/access_token';
+    const accessParams = {
+      oauth_token: oauthToken,
+      oauth_verifier: oauthVerifier,
+    };
+    const authHeader = buildAuthHeader({
+      consumerKey,
+      consumerSecret,
+      token: oauthToken,
+      tokenSecret: tempSecret,
+      method: 'POST',
+      url: accessTokenUrl,
+      extraParams: accessParams,
+    });
+
+    const accessRes = await fetch(accessTokenUrl, {
+      method: 'POST',
       headers: {
+        Authorization: authHeader,
         'Content-Type': 'application/x-www-form-urlencoded',
-        Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
       },
+      body: new URLSearchParams({
+        oauth_token: oauthToken,
+        oauth_verifier: oauthVerifier,
+      }),
     });
 
-    stepLog.info({ functionName: 'GET', phase: 'user:fetch:start' }, 'Fetching X user');
-    const meRes = await fetch('https://api.x.com/2/users/me', {
-      headers: { Authorization: `Bearer ${tokenData.access_token}` },
-    });
-    const me = await meRes.json();
-    const username = me.data?.username || me.data?.id || 'user';
+    if (!accessRes.ok) {
+      const text = await accessRes.text();
+      throw new Error(`OAuth1 access_token failed: ${accessRes.status} ${text}`);
+    }
 
-    tokenData.username = username;
+    const accessText = await accessRes.text();
+    const accessParamsParsed = new URLSearchParams(accessText);
+    const finalOauthToken = accessParamsParsed.get('oauth_token');
+    const finalOauthTokenSecret = accessParamsParsed.get('oauth_token_secret');
+
+    if (!finalOauthToken || !finalOauthTokenSecret) {
+      throw new Error('Invalid access_token response from X');
+    }
+
+    // Fetch user (use /1.1/verify_credentials as recommended in docs for identity)
+    const userUrl = 'https://api.x.com/1.1/account/verify_credentials.json';
+    const userAuthHeader = buildAuthHeader({
+      consumerKey,
+      consumerSecret,
+      token: finalOauthToken,
+      tokenSecret: finalOauthTokenSecret,
+      method: 'GET',
+      url: userUrl,
+    });
+
+    const userRes = await fetch(`${userUrl}?skip_status=true&include_entities=false`, {
+      headers: { Authorization: userAuthHeader },
+    });
+
+    if (!userRes.ok) {
+      const text = await userRes.text();
+      throw new Error(`User lookup failed: ${userRes.status} ${text}`);
+    }
+
+    const user = await userRes.json();
+    const username = user.screen_name || user.name || user.id_str || 'user';
+
+    const tokenData = {
+      oauth_token: finalOauthToken,
+      oauth_token_secret: finalOauthTokenSecret,
+      username,
+    };
+
     const pathname = tokenPath('x', username);
     const storeLog = stepLog.child({ phase: 'x:store:save', pathname });
     storeLog.info(
@@ -63,8 +112,6 @@ export async function GET({ url, cookies }) {
         type: LOG_TYPE.STORE_SAVE_START,
         pathname,
         dataKeys: Object.keys(tokenData || {}),
-        hasAccessToken: !!tokenData?.access_token,
-        hasRefresh: !!tokenData?.refresh_token,
       },
       'Starting X token store save',
     );
@@ -78,7 +125,7 @@ export async function GET({ url, cookies }) {
       'X token store save succeeded',
     );
 
-    cookies.delete('x_pkce_verifier', { path: '/' });
+    cookies.delete('x_oauth1_temp_secret', { path: '/' });
     cookies.delete('x_oauth_state', { path: '/' });
 
     stepLog.info({ functionName: 'GET', phase: 'callback:success', username }, 'X connect success');

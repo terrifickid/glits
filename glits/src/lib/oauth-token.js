@@ -14,6 +14,11 @@ export async function refreshOAuthToken(tokenData, {
   clientSecret,
   refreshToken,
 }) {
+  // OAuth 1.0a user tokens for X have no refresh (long-lived until revoked) — skip for X
+  if (!tokenData.refresh_token && !refreshToken) {
+    return tokenData;
+  }
+
   const body = formBody({
     grant_type: 'refresh_token',
     refresh_token: refreshToken || tokenData.refresh_token,
