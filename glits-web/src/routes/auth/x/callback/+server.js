@@ -88,6 +88,10 @@ export async function GET({ url, cookies }) {
 
     // Fetch user (use /1.1/verify_credentials as recommended in docs for identity)
     const userUrl = 'https://api.x.com/1.1/account/verify_credentials.json';
+    const extraParams = {
+      skip_status: 'true',
+      include_entities: 'false',
+    };
     const userAuthHeader = buildAuthHeader({
       consumerKey,
       consumerSecret,
@@ -95,6 +99,7 @@ export async function GET({ url, cookies }) {
       tokenSecret: finalOauthTokenSecret,
       method: 'GET',
       url: userUrl,
+      extraParams,
     });
 
     const userRes = await fetch(`${userUrl}?skip_status=true&include_entities=false`, {
