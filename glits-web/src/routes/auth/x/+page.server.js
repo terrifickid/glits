@@ -1,5 +1,4 @@
 import { redirect } from '@sveltejs/kit';
-import { randomState } from '$lib/oauth.js';
 import { mustEnv } from '$lib/env.js';
 import { authEntry, logAuth } from '$lib/auth/verbose.js';
 import { buildAuthHeader } from '$lib/oauth1.js';
@@ -8,7 +7,6 @@ import { buildAuthHeader } from '$lib/oauth1.js';
 export async function load({ cookies }) {
   const consumerKey = mustEnv('X_CONSUMER_KEY');
   const consumerSecret = mustEnv('X_CONSUMER_SECRET');
-  const state = randomState();
   // Hardcoded string as requested for simplicity (no redirectBase computation).
   // Register this exact URL in your X app settings under Callback URLs.
   const redirectUri = 'https://glits.vercel.app/auth/x/callback';
@@ -50,21 +48,15 @@ export async function load({ cookies }) {
     throw new Error('Invalid request_token response from X');
   }
 
-  // Store temp secret in cookie (like previous verifier) for the exchange step
+  // Store temp secret in cookie for the exchange step
   cookies.set('x_oauth1_temp_secret', oauthTokenSecret, {
     path: '/',
     httpOnly: true,
     maxAge: 600,
     sameSite: 'lax',
   });
-  cookies.set('x_oauth_state', state, {
-    path: '/',
-    httpOnly: true,
-    maxAge: 600,
-    sameSite: 'lax',
-  });
 
-  logAuth('x', 'oauth:redirect', authEntry('oauth:redirect', { state }));
+  logAuth('x', 'oauth:redirect', authEntry('oauth:redirect', {}));
 
   // Step 2: Redirect to authorize (simple, no challenge/S256)
   throw redirect(302, `https://api.x.com/oauth/authorize?oauth_token=${encodeURIComponent(oauthToken)}`);

@@ -13,9 +13,7 @@ export async function GET({ url, cookies }) {
   const stepLog = fnLog.child({ functionName: 'GET', phase: 'x:callback:start' });
   const oauthToken = url.searchParams.get('oauth_token');
   const oauthVerifier = url.searchParams.get('oauth_verifier');
-  const state = url.searchParams.get('state');
   const tempSecret = cookies.get('x_oauth1_temp_secret');
-  const expectedState = cookies.get('x_oauth_state');
 
   const issues = [];
 
@@ -28,20 +26,16 @@ export async function GET({ url, cookies }) {
   if (!tempSecret) {
     issues.push("The temporary secret from the request_token step (stored in the cookie) is missing. Without it we cannot sign the access_token request in step 3 to get the usable user token + secret.");
   }
-  if (state !== expectedState) {
-    issues.push(`The state value X sent back in the callback was "${state}", but the expected value (the one we stored in the cookie when we started the flow) was "${expectedState}". This usually means the callback is not from the authorization we initiated.`);
-  }
 
   if (issues.length > 0) {
     const invalid = authEntry('failed', {
       hasOauthToken: Boolean(oauthToken),
       hasVerifier: Boolean(oauthVerifier),
       hasTempSecret: Boolean(tempSecret),
-      stateMatch: state === expectedState,
       issues,
       error: 'x_auth_failed',
     });
-    stepLog.error({ type: LOG_TYPE.STATE_MISMATCH, functionName: 'GET', issues, receivedState: state, expectedState }, issues.join(' '));
+    stepLog.error({ type: LOG_TYPE.STATE_MISMATCH, functionName: 'GET', issues }, issues.join(' '));
     flashAuthDebug(cookies, 'x', invalid);
     throw redirect(303, '/?error=x_auth_failed');
   }
