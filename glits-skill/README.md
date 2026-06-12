@@ -18,15 +18,15 @@ It lets Hermes agents (with the `terminal` toolset) create social media posts an
 
    The `glits-web/` directory in this repo is a separate SvelteKit app. Deploy it to Vercel and use it to **Connect** accounts for Bluesky, X, Instagram, etc.
 
-   The CLI/skill never performs OAuth — it only reads tokens that the web app wrote to Upstash Redis.
+   The CLI/skill never performs OAuth — it only reads tokens that the web app wrote to the token store.
 
-3. **Upstash Redis credentials**
+3. **Redis credentials (canonical defaults)**
 
-   You need an Upstash Redis instance (usually via Vercel integration). The skill will prompt for:
-   - `UPSTASH_KV_REST_API_URL`
-   - `UPSTASH_KV_REST_API_TOKEN`
+   You need:
+   - `KV_REST_API_URL`
+   - `KV_REST_API_READ_ONLY_TOKEN`   (for the glits CLI / this skill)
 
-   These are declared as required in the skill frontmatter.
+   These are the single canonical names. The web app (glits-web) needs `KV_REST_API_TOKEN` (the full write token) instead.
 
 4. **Extra secrets for token refresh** (only if using X, LinkedIn, or YouTube)
 
@@ -69,7 +69,7 @@ hermes chat --toolsets terminal,skills
 Then interact with the skill (typically by saying something like "use the glits skill" or invoking it by name `/glits` depending on your Hermes setup).
 
 The agent will be guided by the `SKILL.md` inside this directory. It will:
-- Ask you for the Upstash secrets on first use (if not already provided).
+- Ask you for the KV_REST_API_* credentials on first use (if not already provided).
 - Instruct you on the `npm install -g glits` prerequisite if the CLI is missing.
 - Always start by inspecting tokens.
 - Use `--config` + `--queue` paths it controls.

@@ -1,18 +1,9 @@
 import { Redis } from '@upstash/redis';
 import { log, LOG_TYPE, serializeError } from '$lib/logger.js';
 
-// Upstash Redis client (Vercel Marketplace injects UPSTASH_KV_*; support common fallbacks too)
 const redis = new Redis({
-  url:
-    process.env.UPSTASH_KV_REST_API_URL ||
-    process.env.KV_REST_API_URL ||
-    process.env.UPSTASH_REDIS_REST_URL ||
-    '',
-  token:
-    process.env.UPSTASH_KV_REST_API_TOKEN ||
-    process.env.KV_REST_API_TOKEN ||
-    process.env.UPSTASH_REDIS_REST_TOKEN ||
-    '',
+  url: process.env.KV_REST_API_URL,
+  token: process.env.KV_REST_API_TOKEN,
 });
 
 const fnLog = log.child({ functionName: 'saveToken' });
@@ -21,14 +12,14 @@ const validateLog = log.child({ functionName: 'validateBlobPermissions' });
 export async function validateBlobPermissions() {
   const stepLog = validateLog.child({ phase: 'store:validate' });
 
-  stepLog.info('Checking access to token store (Upstash Redis)');
+  stepLog.info('Checking access to token store');
 
-  const hasUrl = !!(process.env.UPSTASH_KV_REST_API_URL || process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL);
-  const hasToken = !!(process.env.UPSTASH_KV_REST_API_TOKEN || process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN);
+  const hasUrl = !!process.env.KV_REST_API_URL;
+  const hasToken = !!process.env.KV_REST_API_TOKEN;
 
   if (!hasUrl || !hasToken) {
-    stepLog.error({ type: LOG_TYPE.STORE_ERROR }, 'UPSTASH_KV_REST_API_URL / UPSTASH_KV_REST_API_TOKEN (or fallback) credentials missing');
-    throw new Error('UPSTASH_KV_REST_API_URL and UPSTASH_KV_REST_API_TOKEN (or equivalent KV_/UPSTASH_REDIS_*) are not set in the environment');
+    stepLog.error({ type: LOG_TYPE.STORE_ERROR }, 'KV_REST_API_URL / KV_REST_API_TOKEN credentials missing');
+    throw new Error('KV_REST_API_URL and KV_REST_API_TOKEN are not set in the environment');
   }
 
   stepLog.info('Token store credentials present');

@@ -11,13 +11,13 @@ metadata:
     category: productivity
     requires_toolsets: [terminal]
 required_environment_variables:
-  - name: UPSTASH_KV_REST_API_URL
-    prompt: Upstash Redis REST URL (from Vercel Upstash integration or console)
-    help: Usually UPSTASH_KV_REST_API_URL + UPSTASH_KV_REST_API_TOKEN (or KV_/UPSTASH_REDIS_ fallbacks)
+  - name: KV_REST_API_URL
+    prompt: Vercel KV REST URL (the canonical default from the integration)
+    help: This is the single canonical URL variable.
     required_for: publishing
-  - name: UPSTASH_KV_REST_API_TOKEN
-    prompt: Upstash Redis REST token
-    help: Pair with the URL above
+  - name: KV_REST_API_READ_ONLY_TOKEN
+    prompt: Vercel KV REST read-only token (the canonical default for read-only use)
+    help: This is the single canonical token variable for the glits CLI / this skill. The web app uses the full KV_REST_API_TOKEN instead.
     required_for: publishing
 ---
 
@@ -32,7 +32,7 @@ Multi-platform social posting from public cloud URLs.
 - Node.js 18+ must be available in the environment where the Hermes terminal tool runs.
 - The human must run (once): `npm install -g glits` (or be willing to let you use `npx glits`).
 - The separate `glits-web` must have been deployed to Vercel at least once, and the user must have used it to **Connect** the accounts they want to post to.
-- Upstash Redis credentials (injected by this skill's frontmatter).
+- KV_REST_API_URL + KV_REST_API_READ_ONLY_TOKEN (injected by this skill's frontmatter).
 
 If you ever see "command not found: glits", immediately tell the human:
 
@@ -89,7 +89,7 @@ npx glits --config /tmp/my.config.js ...
      --queue /tmp/glits-queue
    ```
 
-5. Send (requires the Upstash secrets in the env):
+5. Send (requires the KV_REST_API_* credentials in the env):
 
    ```bash
    npx glits --config /tmp/my.config.js \
@@ -119,12 +119,12 @@ You always control `--queue` and `--config`. Choose paths the terminal can read/
 - The CLI never logs in, never does OAuth, never writes tokens.
 - Instagram requires an image or video. YouTube requires a video. Create will succeed; send will fail later if missing.
 - Only public HTTPS URLs for assets. No local paths.
-- Refreshable platforms (x, linkedin, youtube) need their client secrets in the terminal environment at send time (in addition to the Upstash creds declared in this frontmatter).
+- Refreshable platforms (x, linkedin, youtube) need their client secrets in the terminal environment at send time (in addition to the KV_REST_API_* creds declared in this frontmatter).
 - Queue files live only where you told `--queue`. They are not in the token store.
 
 ## Mental model (agents must understand)
 
-Two independent pieces that share only the Upstash Redis token store:
+Two independent pieces that share only the token store:
 
 - glits-web (deployed once by a human to Vercel) → performs connects, writes private token blobs.
 - This skill + the `glits` CLI (what you invoke with npx or global) → only reads tokens at send time and publishes.

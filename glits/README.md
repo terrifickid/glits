@@ -84,7 +84,7 @@ See the example in the source repo if you want a full commented template.
 
 **This CLI does not do authentication.**
 
-Tokens are stored in Upstash Redis (under `tokens/*-platform.json` keys). They are **written** by a separate web application:
+Tokens are stored in the token store (under `tokens/*-platform.json` keys). They are **written** by a separate web application:
 
 - The web app lives in the `glits-web` directory of the repo.
 - Deploy it once to Vercel.
@@ -97,10 +97,10 @@ If `tokens --json` shows no accounts for a platform, the fix is to connect via t
 
 ### Required for most operations
 
-- `UPSTASH_KV_REST_API_URL`
-- `UPSTASH_KV_REST_API_TOKEN`
+- `KV_REST_API_URL`
+- `KV_REST_API_READ_ONLY_TOKEN`   (for the glits CLI)
 
-(These come from a Vercel Upstash integration or your Upstash console. They are also what the web app uses.)
+These are the single canonical names (from the Vercel KV integration). The web app (glits-web) needs `KV_REST_API_TOKEN` (the full write token) instead.
 
 ### Needed at send time for token refresh
 

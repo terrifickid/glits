@@ -97,7 +97,7 @@ program
 
 program
   .command('tokens')
-  .description('List all authorized accounts/tokens from the token store (Upstash Redis) and show status (read-only diagnostic)')
+  .description('List all authorized accounts/tokens from the token store and show status (read-only diagnostic)')
   .option('--json', 'Output machine-readable JSON (for agents)')
   .action(async (opts) => {
     const { tokensCommand } = await import('../src/commands/tokens.js');

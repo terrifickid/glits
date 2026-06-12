@@ -3,18 +3,9 @@ import { isExpired } from './lib/oauth-token.js';
 
 const TOKEN_PREFIX = 'tokens/';
 
-// Upstash Redis client (same env names as web)
 const redis = new Redis({
-  url:
-    process.env.UPSTASH_KV_REST_API_URL ||
-    process.env.KV_REST_API_URL ||
-    process.env.UPSTASH_REDIS_REST_URL ||
-    '',
-  token:
-    process.env.UPSTASH_KV_REST_API_TOKEN ||
-    process.env.KV_REST_API_TOKEN ||
-    process.env.UPSTASH_REDIS_REST_TOKEN ||
-    '',
+  url: process.env.KV_REST_API_URL,
+  token: process.env.KV_REST_API_READ_ONLY_TOKEN,
 });
 
 export async function listTokenBlobs() {
@@ -112,7 +103,7 @@ function summarizeToken(pathname, data) {
 /**
  * List ALL authorized tokens across every platform.
  * Returns an array of safe summary objects (no secrets).
- * Requires the storage credential (UPSTASH_KV_*) to be present in the environment.
+ * Requires the canonical storage credential (KV_REST_API_URL + KV_REST_API_READ_ONLY_TOKEN) to be present in the environment.
  */
 export async function listAllTokens() {
   const blobs = await listTokenBlobs();
