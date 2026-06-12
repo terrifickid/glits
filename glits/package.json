@@ -4,7 +4,7 @@
   "description": "Queue and publish social posts to Bluesky, X, Mastodon, Instagram, Threads, LinkedIn, YouTube, Facebook, and Nostr from public cloud asset URLs.",
   "type": "module",
   "bin": {
-    "glits": "./bin/glits.js"
+    "glits": "bin/glits.js"
   },
   "files": [
     "bin",
@@ -29,6 +29,14 @@
     "queue"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/terrifickid/glits.git"
+  },
+  "homepage": "https://github.com/terrifickid/glits#readme",
+  "bugs": {
+    "url": "https://github.com/terrifickid/glits/issues"
+  },
   "dependencies": {
     "@atproto/api": "^0.14.15",
     "@upstash/redis": "^1.34.3",
