@@ -11,7 +11,8 @@ const program = new Command();
 program
   .name('glits')
   .description('Social media post queue and publishing CLI')
-  .version('0.1.0');
+  .version('0.1.0')
+  .option('--config <path>', 'Path to glits.config.js (highest precedence; great for agents)');
 
 // Global handlers per log-example.js
 process.on('uncaughtException', (err, origin) => {
@@ -102,5 +103,15 @@ program
     const { tokensCommand } = await import('../src/commands/tokens.js');
     return tokensCommand(opts);
   });
+
+// Make --config (global) win over GLITS_CONFIG env for the config loader.
+// This runs before subcommand actions, so the env the existing config.js
+// checks is set to the explicit value. Perfect for `npx glits --config foo.js ...`.
+program.hook('preAction', (thisCommand) => {
+  const o = thisCommand.opts();
+  if (o.config) {
+    process.env.GLITS_CONFIG = o.config;
+  }
+});
 
 program.parse();

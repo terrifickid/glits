@@ -1,10 +1,16 @@
 import { pathToFileURL } from 'node:url';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const configPath = process.env.GLITS_CONFIG
-  || path.resolve(__dirname, '../../glits.config.js');
+// Highest precedence: explicit --config on the command line (for agents: npx glits --config foo.js ...).
+// Then GLITS_CONFIG env, then a glits.config.js in the current working directory.
+let explicitFromArgv = null;
+const cfgIdx = process.argv.indexOf('--config');
+if (cfgIdx !== -1 && process.argv[cfgIdx + 1] && !process.argv[cfgIdx + 1].startsWith('-')) {
+  explicitFromArgv = process.argv[cfgIdx + 1];
+}
+const configPath = explicitFromArgv
+  || process.env.GLITS_CONFIG
+  || path.resolve(process.cwd(), 'glits.config.js');
 
 let cached;
 
