@@ -1,5 +1,5 @@
 import { redirect } from '@sveltejs/kit';
-import { mustEnv } from '$lib/env.js';
+import { redirectBase, mustEnv } from '$lib/env.js';
 import { authEntry, logAuth } from '$lib/auth/verbose.js';
 import { buildAuthHeader } from '$lib/oauth1.js';
 
@@ -7,9 +7,7 @@ import { buildAuthHeader } from '$lib/oauth1.js';
 export async function load({ cookies }) {
   const consumerKey = mustEnv('X_CONSUMER_KEY');
   const consumerSecret = mustEnv('X_CONSUMER_SECRET');
-  // Hardcoded string as requested for simplicity (no redirectBase computation).
-  // Register this exact URL in your X app settings under Callback URLs.
-  const redirectUri = 'https://glits.vercel.app/auth/x/callback';
+  const redirectUri = `${redirectBase()}/auth/x/callback`;
 
   // Step 1: POST oauth/request_token (signed with consumer only + oauth_callback)
   const requestTokenUrl = 'https://api.x.com/oauth/request_token';

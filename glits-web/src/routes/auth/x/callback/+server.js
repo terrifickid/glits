@@ -1,5 +1,5 @@
 import { redirect } from '@sveltejs/kit';
-import { redirectBase, mustEnv } from '$lib/env.js';
+import { mustEnv } from '$lib/env.js';
 import { saveToken, validateBlobPermissions } from '$lib/blob.js';
 import { tokenPath } from '$lib/tokens.js';
 import { log, LOG_TYPE, authEntry, serializeError } from '$lib/logger.js';
