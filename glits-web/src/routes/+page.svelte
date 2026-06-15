@@ -13,49 +13,10 @@
   /** @type {import('./$types').PageData} */
   export let data;
 
-  const URL = 'https://future-caribbean-buildathon-social.vercel.app';
-  const TITLE = 'Future Caribbean Buildathon 2026';
-  const DESC = 'Building the future in the Caribbean. Check out our project and join the movement!';
-  const FULL_TEXT = `${TITLE}\n\n${DESC}\n\n${URL}`;
-
-  async function shareNative() {
-    const shareData = { title: TITLE, text: DESC, url: URL };
-    try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-      } else {
-        await navigator.clipboard.writeText(FULL_TEXT);
-        alert('Text copied to clipboard! You can now paste it into Facebook, Threads, Instagram, etc.');
-      }
-    } catch {
-      await navigator.clipboard.writeText(FULL_TEXT);
-      alert('Text copied to clipboard!');
-    }
-  }
-
-  function shareFacebook() {
-    const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(URL)}&quote=${encodeURIComponent(FULL_TEXT)}`;
-    window.open(fbUrl, '_blank');
-  }
-
-  function shareThreads() {
-    const threadsUrl = `https://www.threads.net/intent/post?text=${encodeURIComponent(FULL_TEXT)}`;
-    window.open(threadsUrl, '_blank');
-  }
-
-  function shareInstagram() {
-    alert('For Instagram:\n1. Copy the text below\n2. Open the Instagram app\n3. Create a new post or story and paste the link + description.');
-    navigator.clipboard.writeText(FULL_TEXT);
-  }
-
-  function copyText() {
-    navigator.clipboard.writeText(FULL_TEXT);
-    alert('Presskit text + link copied to clipboard!');
-  }
-
-  async function copyPost(text) {
-    await navigator.clipboard.writeText(text);
-  }
+  const LINK = 'https://futurecaribbean.com';
+  const PRESSKIT_TEXT =
+    '🌴 Build intelligence that moves the real world. Future Caribbean is a global Agentic AI buildathon — 40 teams, 10 tracks, $70K prizes, NVIDIA H200 compute, and a live pitch at the NYSE. Applications close July 3 → futurecaribbean.com';
+  const PRESSKIT_POST = { text: PRESSKIT_TEXT, link: LINK };
 
   const SHARE_PROVIDERS = [
     { id: 'native', label: 'Device share sheet' },
@@ -80,23 +41,26 @@
     openShareId = null;
   }
 
-  function postPayload(post) {
-    return {
-      text: post.text,
-      link: post.link || '',
-      imageUrl: post.images?.portrait || post.images?.square || '',
-      videoUrl: post.video || '',
-    };
+  async function copyPost(text) {
+    await navigator.clipboard.writeText(text);
   }
 
-  async function sharePost(post, providerId) {
-    const { text, link, imageUrl, videoUrl } = postPayload(post);
-    closeShareMenu();
+  async function copyPresskit() {
+    await navigator.clipboard.writeText(PRESSKIT_TEXT);
+    alert('Presskit post copied to clipboard.');
+  }
+
+  /**
+   * @param {{ text: string, link?: string }} post
+   * @param {string} providerId
+   */
+  async function shareToProvider(post, providerId) {
+    const text = post.text;
+    const link = post.link || LINK;
 
     switch (providerId) {
       case 'native': {
-        const shareData = { title: 'Future Caribbean', text };
-        if (link) shareData.url = link;
+        const shareData = { title: 'Future Caribbean', text, url: link };
         try {
           if (navigator.share) {
             await navigator.share(shareData);
@@ -109,15 +73,13 @@
         }
         break;
       }
-      case 'facebook': {
-        const shareUrl = link || URL;
+      case 'facebook':
         window.open(
-          `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(text)}`,
+          `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}&quote=${encodeURIComponent(text)}`,
           '_blank',
           'noopener,noreferrer',
         );
         break;
-      }
       case 'threads':
         window.open(
           `https://www.threads.net/intent/post?text=${encodeURIComponent(text)}`,
@@ -146,50 +108,41 @@
           'noopener,noreferrer',
         );
         break;
-      case 'linkedin': {
-        if (link) {
-          window.open(
-            `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(link)}`,
-            '_blank',
-            'noopener,noreferrer',
-          );
-        }
+      case 'linkedin':
+        window.open(
+          `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(link)}`,
+          '_blank',
+          'noopener,noreferrer',
+        );
         await navigator.clipboard.writeText(text);
-        if (!link) {
-          window.open('https://www.linkedin.com/feed/?shareActive=true', '_blank', 'noopener,noreferrer');
-        }
         alert('Post text copied — paste it into your LinkedIn post.');
         break;
-      }
-      case 'instagram': {
+      case 'instagram':
         await navigator.clipboard.writeText(text);
-        const mediaNote = videoUrl
-          ? `\n\nVideo: ${videoUrl}`
-          : imageUrl
-            ? `\n\nImage: ${imageUrl}`
-            : '';
-        alert(
-          `Post text copied.${mediaNote}\n\nOpen Instagram, create a new post or reel, paste the caption, and add the media URL if needed.`,
-        );
+        alert('Post text copied. Open Instagram and paste into a new post or story.');
         break;
-      }
-      case 'youtube': {
+      case 'youtube':
         await navigator.clipboard.writeText(text);
         window.open('https://www.youtube.com/upload', '_blank', 'noopener,noreferrer');
-        alert(
-          `Post text copied.${videoUrl ? `\n\nVideo: ${videoUrl}` : ''}\n\nPaste as your title/description on YouTube and upload the video.`,
-        );
+        alert('Post text copied — paste as your video title/description on YouTube.');
         break;
-      }
-      case 'nostr': {
+      case 'nostr':
         await navigator.clipboard.writeText(text);
         window.open('https://primal.net/home', '_blank', 'noopener,noreferrer');
         alert('Post text copied — paste it into your Nostr client.');
         break;
-      }
       default:
         break;
     }
+  }
+
+  async function sharePresskit(providerId) {
+    await shareToProvider(PRESSKIT_POST, providerId);
+  }
+
+  async function sharePost(post, providerId) {
+    closeShareMenu();
+    await shareToProvider({ text: post.text, link: post.link || LINK }, providerId);
   }
 </script>
 
@@ -308,38 +261,39 @@
     filter: brightness(1.08);
   }
 
-  .main-btn {
-    background: var(--pink);
-    color: white;
+  .provider-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.65rem;
   }
 
-  .fb,
-  .threads,
-  .ig,
-  .copy {
+  .provider-btn {
     background: rgba(255, 255, 255, 0.04);
     color: var(--white);
     border: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 0;
   }
 
-  .fb:hover {
-    border-color: rgba(24, 119, 242, 0.45);
-    background: rgba(24, 119, 242, 0.12);
-  }
-
-  .threads:hover {
-    border-color: rgba(255, 255, 255, 0.22);
-    background: rgba(255, 255, 255, 0.08);
-  }
-
-  .ig:hover {
-    border-color: rgba(225, 48, 108, 0.45);
-    background: rgba(225, 48, 108, 0.12);
-  }
-
-  .copy:hover {
+  .provider-btn:hover {
     border-color: rgba(44, 219, 240, 0.35);
     background: rgba(44, 219, 240, 0.08);
+  }
+
+  .provider-btn.primary {
+    grid-column: 1 / -1;
+    background: var(--pink);
+    color: white;
+    border: none;
+  }
+
+  .provider-btn.copy {
+    grid-column: 1 / -1;
+    border-color: rgba(250, 193, 52, 0.25);
+  }
+
+  .provider-btn.copy:hover {
+    border-color: rgba(250, 193, 52, 0.45);
+    background: rgba(250, 193, 52, 0.1);
   }
 
   .section {
@@ -444,25 +398,9 @@
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
   }
 
-  .post-media {
-    position: relative;
-    aspect-ratio: 4 / 5;
-    background: #060d12;
-    overflow: hidden;
-  }
-
-  .post-media img,
-  .post-media video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-
   .post-id {
-    position: absolute;
-    top: 12px;
-    left: 12px;
+    display: inline-block;
+    align-self: flex-start;
     padding: 4px 10px;
     border-radius: 999px;
     background: rgba(10, 17, 24, 0.82);
@@ -487,10 +425,6 @@
     font-size: 0.9rem;
     color: rgba(248, 251, 252, 0.88);
     line-height: 1.5;
-    display: -webkit-box;
-    -webkit-line-clamp: 6;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
   }
 
   .post-actions {
@@ -630,24 +564,30 @@
     <p class="eyebrow">Social Presskit</p>
     <h1>Share the <em>Buildathon</em></h1>
     <p class="subtitle">
-      Building intelligence that moves the real world. Copy or share our presskit across Facebook,
-      Threads, Instagram, and more.
+      Share Future Caribbean with one click — pick a platform below and we’ll open the compose
+      widget with our post ready to go.
     </p>
 
     <div class="share-panel">
-      <button class="main-btn" on:click={shareNative}>Share Presskit</button>
-      <p class="small">Opens your phone’s share sheet (Facebook, Instagram, Threads, etc.)</p>
-
-      <div class="section">
-        <button class="fb" on:click={shareFacebook}>Share on Facebook</button>
-        <button class="threads" on:click={shareThreads}>Share on Threads</button>
-        <button class="ig" on:click={shareInstagram}>Share on Instagram</button>
-        <button class="copy" on:click={copyText}>Copy text + link</button>
+      <span class="section-label">Share to a platform</span>
+      <div class="provider-grid">
+        {#each SHARE_PROVIDERS as provider (provider.id)}
+          <button
+            class="provider-btn"
+            class:primary={provider.id === 'native'}
+            type="button"
+            on:click={() => sharePresskit(provider.id)}
+          >
+            {provider.label}
+          </button>
+        {/each}
+        <button class="provider-btn copy" type="button" on:click={copyPresskit}>Copy post text</button>
       </div>
 
       <div class="section">
-        <span class="section-label">Text that gets shared</span>
-        <pre>{FULL_TEXT}</pre>
+        <span class="section-label">Post that gets shared</span>
+        <pre>{PRESSKIT_TEXT}</pre>
+        <p class="small">Links to <a href={LINK} target="_blank" rel="noopener noreferrer">{LINK}</a></p>
       </div>
     </div>
 
@@ -663,17 +603,8 @@
     <div class="posts-grid">
       {#each data.posts as post (post.id)}
         <article class="post-card">
-          <div class="post-media">
-            <span class="post-id">{post.id}</span>
-            {#if post.video}
-              <video src={post.video} muted playsinline preload="metadata" poster={post.images?.portrait}></video>
-            {:else if post.images?.portrait}
-              <img src={post.images.portrait} alt="" loading="lazy" />
-            {:else if post.images?.square}
-              <img src={post.images.square} alt="" loading="lazy" />
-            {/if}
-          </div>
           <div class="post-body">
+            <span class="post-id">{post.id}</span>
             <p class="post-text">{post.text}</p>
             <div class="post-actions">
               <button class="post-copy" type="button" on:click={() => copyPost(post.text)}>Copy text</button>
