@@ -2,10 +2,9 @@
   "id": "campaign-2026-06-15",
   "text": "Check this out",
   "link": "https://example.com",
-  "images": [
-    "https://cdn.example.com/hero.jpg"
-  ],
-  "videos": [
-    "https://cdn.example.com/promo.mp4"
-  ],
+  "images": {
+    "square": "https://future-caribbean-buildathon-social.vercel.app/fc_square.jpg",
+    "portrait": "https://future-caribbean-buildathon-social.vercel.app/fc_portrait.jpg"
+  },
+  "video": "https://future-caribbean-buildathon-social.vercel.app/fc_video.mp4",
 }
