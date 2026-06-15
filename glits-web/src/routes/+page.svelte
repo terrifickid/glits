@@ -56,7 +56,144 @@
   async function copyPost(text) {
     await navigator.clipboard.writeText(text);
   }
+
+  const SHARE_PROVIDERS = [
+    { id: 'native', label: 'Device share sheet' },
+    { id: 'bluesky', label: 'Bluesky' },
+    { id: 'x', label: 'X' },
+    { id: 'mastodon', label: 'Mastodon' },
+    { id: 'threads', label: 'Threads' },
+    { id: 'instagram', label: 'Instagram' },
+    { id: 'linkedin', label: 'LinkedIn' },
+    { id: 'youtube', label: 'YouTube' },
+    { id: 'facebook', label: 'Facebook' },
+    { id: 'nostr', label: 'Nostr' },
+  ];
+
+  let openShareId = null;
+
+  function toggleShareMenu(postId) {
+    openShareId = openShareId === postId ? null : postId;
+  }
+
+  function closeShareMenu() {
+    openShareId = null;
+  }
+
+  function postPayload(post) {
+    return {
+      text: post.text,
+      link: post.link || '',
+      imageUrl: post.images?.portrait || post.images?.square || '',
+      videoUrl: post.video || '',
+    };
+  }
+
+  async function sharePost(post, providerId) {
+    const { text, link, imageUrl, videoUrl } = postPayload(post);
+    closeShareMenu();
+
+    switch (providerId) {
+      case 'native': {
+        const shareData = { title: 'Future Caribbean', text };
+        if (link) shareData.url = link;
+        try {
+          if (navigator.share) {
+            await navigator.share(shareData);
+          } else {
+            await navigator.clipboard.writeText(text);
+            alert('Post text copied to clipboard.');
+          }
+        } catch {
+          /* user cancelled */
+        }
+        break;
+      }
+      case 'facebook': {
+        const shareUrl = link || URL;
+        window.open(
+          `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(text)}`,
+          '_blank',
+          'noopener,noreferrer',
+        );
+        break;
+      }
+      case 'threads':
+        window.open(
+          `https://www.threads.net/intent/post?text=${encodeURIComponent(text)}`,
+          '_blank',
+          'noopener,noreferrer',
+        );
+        break;
+      case 'x':
+        window.open(
+          `https://x.com/intent/tweet?text=${encodeURIComponent(text)}`,
+          '_blank',
+          'noopener,noreferrer',
+        );
+        break;
+      case 'bluesky':
+        window.open(
+          `https://bsky.app/intent/compose?text=${encodeURIComponent(text)}`,
+          '_blank',
+          'noopener,noreferrer',
+        );
+        break;
+      case 'mastodon':
+        window.open(
+          `https://mastodon.social/share?text=${encodeURIComponent(text)}`,
+          '_blank',
+          'noopener,noreferrer',
+        );
+        break;
+      case 'linkedin': {
+        if (link) {
+          window.open(
+            `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(link)}`,
+            '_blank',
+            'noopener,noreferrer',
+          );
+        }
+        await navigator.clipboard.writeText(text);
+        if (!link) {
+          window.open('https://www.linkedin.com/feed/?shareActive=true', '_blank', 'noopener,noreferrer');
+        }
+        alert('Post text copied — paste it into your LinkedIn post.');
+        break;
+      }
+      case 'instagram': {
+        await navigator.clipboard.writeText(text);
+        const mediaNote = videoUrl
+          ? `\n\nVideo: ${videoUrl}`
+          : imageUrl
+            ? `\n\nImage: ${imageUrl}`
+            : '';
+        alert(
+          `Post text copied.${mediaNote}\n\nOpen Instagram, create a new post or reel, paste the caption, and add the media URL if needed.`,
+        );
+        break;
+      }
+      case 'youtube': {
+        await navigator.clipboard.writeText(text);
+        window.open('https://www.youtube.com/upload', '_blank', 'noopener,noreferrer');
+        alert(
+          `Post text copied.${videoUrl ? `\n\nVideo: ${videoUrl}` : ''}\n\nPaste as your title/description on YouTube and upload the video.`,
+        );
+        break;
+      }
+      case 'nostr': {
+        await navigator.clipboard.writeText(text);
+        window.open('https://primal.net/home', '_blank', 'noopener,noreferrer');
+        alert('Post text copied — paste it into your Nostr client.');
+        break;
+      }
+      default:
+        break;
+    }
+  }
 </script>
+
+<svelte:window on:click={closeShareMenu} />
 
 <style>
   .page {
@@ -296,7 +433,7 @@
     flex-direction: column;
     border: 1px solid var(--border);
     border-radius: 14px;
-    overflow: hidden;
+    overflow: visible;
     background: rgba(6, 13, 18, 0.72);
     transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
   }
@@ -358,6 +495,7 @@
 
   .post-actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.5rem;
     margin-top: auto;
   }
@@ -365,6 +503,7 @@
   .post-actions button,
   .post-actions a {
     flex: 1;
+    min-width: calc(50% - 0.25rem);
     padding: 0.65rem 0.75rem;
     border-radius: 6px;
     font-size: 0.72rem;
@@ -378,6 +517,72 @@
     width: auto;
     margin: 0;
     transition: filter 0.15s ease, background 0.15s ease;
+  }
+
+  .share-wrap {
+    position: relative;
+    flex: 1 1 100%;
+  }
+
+  .post-share {
+    width: 100%;
+    padding: 0.65rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-align: center;
+    cursor: pointer;
+    border: 1px solid rgba(250, 42, 129, 0.35);
+    background: rgba(250, 42, 129, 0.12);
+    color: var(--white);
+    transition: filter 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  }
+
+  .post-share:hover,
+  .post-share.open {
+    background: rgba(250, 42, 129, 0.22);
+    border-color: rgba(250, 42, 129, 0.55);
+  }
+
+  .share-menu {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(100% + 0.4rem);
+    z-index: 20;
+    margin: 0;
+    padding: 0.35rem;
+    list-style: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: rgba(6, 13, 18, 0.96);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+    max-height: 240px;
+    overflow-y: auto;
+  }
+
+  .share-menu button {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    padding: 0.55rem 0.65rem;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: rgba(248, 251, 252, 0.9);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .share-menu button:hover {
+    background: rgba(44, 219, 240, 0.1);
+    color: var(--cyan);
   }
 
   .post-copy {
@@ -475,6 +680,33 @@
               {#if post.link}
                 <a class="post-link" href={post.link} target="_blank" rel="noopener noreferrer">Open link</a>
               {/if}
+              <div class="share-wrap" on:click|stopPropagation>
+                <button
+                  class="post-share"
+                  class:open={openShareId === post.id}
+                  type="button"
+                  aria-expanded={openShareId === post.id}
+                  aria-haspopup="menu"
+                  on:click={() => toggleShareMenu(post.id)}
+                >
+                  Share ▾
+                </button>
+                {#if openShareId === post.id}
+                  <ul class="share-menu" role="menu">
+                    {#each SHARE_PROVIDERS as provider (provider.id)}
+                      <li role="none">
+                        <button
+                          type="button"
+                          role="menuitem"
+                          on:click={() => sharePost(post, provider.id)}
+                        >
+                          {provider.label}
+                        </button>
+                      </li>
+                    {/each}
+                  </ul>
+                {/if}
+              </div>
             </div>
           </div>
         </article>
