@@ -1,0 +1,11 @@
+{
+  "id": "campaign-2026-06-15",
+  "text": "Check this out",
+  "link": "https://example.com",
+  "images": [
+    "https://cdn.example.com/hero.jpg"
+  ],
+  "videos": [
+    "https://cdn.example.com/promo.mp4"
+  ],
+}
