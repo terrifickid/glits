@@ -2,15 +2,16 @@
 
 <style>
   :global(body) {
-    font-family: system-ui, sans-serif;
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
     margin: 0;
-    padding: 2rem;
-    background: #0a0a0a;
-    color: #f5f5f5;
+    padding: 0;
+    background: #0a1118;
+    color: #f8fbfc;
+    -webkit-font-smoothing: antialiased;
   }
 
   :global(a) {
-    color: #60a5fa;
+    color: #2cdbf0;
   }
 
   :global(input, button) {
@@ -19,10 +20,10 @@
 
   :global(input) {
     padding: 0.5rem 0.75rem;
-    border: 1px solid #333;
+    border: 1px solid rgba(44, 219, 240, 0.15);
     border-radius: 6px;
-    background: #111;
-    color: #f5f5f5;
+    background: #060d12;
+    color: #f8fbfc;
     width: 100%;
     box-sizing: border-box;
   }
@@ -31,21 +32,21 @@
     padding: 0.6rem 1.2rem;
     border: none;
     border-radius: 6px;
-    background: #2563eb;
+    background: #fa2a81;
     color: white;
     cursor: pointer;
   }
 
   :global(button:hover) {
-    background: #1d4ed8;
+    filter: brightness(1.1);
   }
 
   :global(.card) {
     max-width: 420px;
     padding: 1.5rem;
-    border: 1px solid #222;
+    border: 1px solid rgba(44, 219, 240, 0.12);
     border-radius: 12px;
-    background: #111;
+    background: rgba(6, 13, 18, 0.72);
   }
 
   :global(.error) {
@@ -54,7 +55,7 @@
   }
 
   :global(.success) {
-    color: #4ade80;
+    color: #42e7ab;
     margin-top: 0.75rem;
   }
 </style>
