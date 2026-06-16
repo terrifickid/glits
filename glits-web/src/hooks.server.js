@@ -1,5 +1,4 @@
 import { log, LOG_TYPE, serializeError } from "$lib/logger.js";
-import { validateBlobPermissions } from "$lib/blob.js";
 import _ from "lodash";
 
 /**
@@ -43,8 +42,6 @@ export async function handle({ event, resolve }) {
     url: event.url.pathname,
     method: event.request.method,
   });
-
-  await validateBlobPermissions();
 
   if (process.env.LOG_LEVEL === "debug" || process.env.LOG_LEVEL === "trace") {
     routeLog.debug("Incoming request");
