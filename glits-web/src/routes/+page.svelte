@@ -18,6 +18,16 @@
     '🌴 Build intelligence that moves the real world. Future Caribbean is a global Agentic AI buildathon — 40 teams, 10 tracks, $70K prizes, NVIDIA H200 compute, and a live pitch at the NYSE. Applications close July 3 → futurecaribbean.com';
   const PRESSKIT_POST = { text: PRESSKIT_TEXT, link: LINK };
 
+  const POST_CATEGORIES = [
+    { id: 'launch', label: 'Launch' },
+    { id: 'build', label: 'Build' },
+    { id: 'prizes', label: 'Prizes' },
+    { id: 'tracks', label: 'Tracks' },
+    { id: 'quotes', label: 'Quotes' },
+    { id: 'timeline', label: 'Timeline' },
+    { id: 'ecosystem', label: 'Ecosystem' },
+  ];
+
   const SHARE_PROVIDERS = [
     { id: 'native', label: 'Device share sheet' },
     { id: 'bluesky', label: 'Bluesky' },
@@ -32,6 +42,19 @@
   ];
 
   let openShareId = null;
+  /** @type {string | null} */
+  let selectedCategory = null;
+
+  $: filteredPosts = selectedCategory
+    ? data.posts.filter((post) => post.category === selectedCategory)
+    : data.posts;
+
+  $: activeCategory = POST_CATEGORIES.find((category) => category.id === selectedCategory);
+
+  function selectCategory(categoryId) {
+    selectedCategory = selectedCategory === categoryId ? null : categoryId;
+    closeShareMenu();
+  }
 
   function toggleShareMenu(postId) {
     openShareId = openShareId === postId ? null : postId;
@@ -374,9 +397,38 @@
     font-size: 0.95rem;
   }
 
-  .posts-header code {
-    color: var(--gold);
-    font-size: 0.88em;
+  .category-filters {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    margin: 0 auto 2rem;
+  }
+
+  .category-pill {
+    padding: 0.45rem 0.9rem;
+    border-radius: 999px;
+    border: 1px solid rgba(44, 219, 240, 0.18);
+    background: rgba(10, 17, 24, 0.72);
+    color: rgba(248, 251, 252, 0.78);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  }
+
+  .category-pill:hover {
+    border-color: rgba(44, 219, 240, 0.35);
+    color: var(--white);
+    transform: translateY(-1px);
+  }
+
+  .category-pill.active {
+    background: rgba(44, 219, 240, 0.14);
+    border-color: rgba(44, 219, 240, 0.45);
+    color: var(--cyan);
   }
 
   .posts-grid {
@@ -592,11 +644,31 @@
     <div class="posts-container">
       <div class="posts-header">
         <h2>Social <em>Posts</em></h2>
-        <p>{data.posts.length} ready-to-publish posts</p>
+        <p>
+          {#if activeCategory}
+            {filteredPosts.length} {activeCategory.label.toLowerCase()} posts
+          {:else}
+            {data.posts.length} ready-to-publish posts
+          {/if}
+        </p>
+      </div>
+
+      <div class="category-filters" role="toolbar" aria-label="Filter posts by category">
+        {#each POST_CATEGORIES as category (category.id)}
+          <button
+            class="category-pill"
+            class:active={selectedCategory === category.id}
+            type="button"
+            aria-pressed={selectedCategory === category.id}
+            on:click={() => selectCategory(category.id)}
+          >
+            {category.label}
+          </button>
+        {/each}
       </div>
 
       <div class="posts-grid">
-      {#each data.posts as post (post.id)}
+      {#each filteredPosts as post (post.id)}
         <article class="post-card">
           <div class="post-body">
             <span class="post-id">{post.id}</span>
