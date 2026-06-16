@@ -343,8 +343,13 @@
     background: linear-gradient(180deg, rgba(6, 13, 18, 0.35), rgba(6, 13, 18, 0.85));
   }
 
+  .posts-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
   .posts-header {
-    max-width: 1400px;
     margin: 0 auto 2rem;
     text-align: center;
   }
@@ -376,10 +381,8 @@
 
   .posts-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 1.5rem;
-    max-width: 1600px;
-    margin: 0 auto;
   }
 
   .post-card {
@@ -531,16 +534,15 @@
     border-color: rgba(44, 219, 240, 0.25);
   }
 
-  @media (min-width: 1200px) {
+  @media (min-width: 900px) {
     .posts-grid {
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(2, 1fr);
     }
   }
 
-  @media (min-width: 1800px) {
+  @media (min-width: 1100px) {
     .posts-grid {
-      grid-template-columns: repeat(5, 1fr);
-      max-width: 2000px;
+      grid-template-columns: repeat(3, 1fr);
     }
   }
 </style>
@@ -587,12 +589,13 @@
   </div>
 
   <section class="posts-section">
-    <div class="posts-header">
-      <h2>Social <em>Posts</em></h2>
-      <p>{data.posts.length} ready-to-publish posts from <code>social.json</code></p>
-    </div>
+    <div class="posts-container">
+      <div class="posts-header">
+        <h2>Social <em>Posts</em></h2>
+        <p>{data.posts.length} ready-to-publish posts</p>
+      </div>
 
-    <div class="posts-grid">
+      <div class="posts-grid">
       {#each data.posts as post (post.id)}
         <article class="post-card">
           <div class="post-body">
@@ -631,6 +634,7 @@
           </div>
         </article>
       {/each}
+      </div>
     </div>
   </section>
 </div>
