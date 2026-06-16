@@ -434,8 +434,8 @@
     margin-top: auto;
   }
 
-  .post-actions button,
-  .post-actions a {
+  .post-actions > button,
+  .post-actions > a {
     flex: 1;
     min-width: calc(50% - 0.25rem);
     padding: 0.65rem 0.75rem;
@@ -455,7 +455,8 @@
 
   .share-wrap {
     position: relative;
-    flex: 1 1 100%;
+    flex: 0 0 100%;
+    width: 100%;
   }
 
   .post-share {
