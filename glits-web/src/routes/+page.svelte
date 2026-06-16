@@ -530,15 +530,6 @@
     border-color: rgba(44, 219, 240, 0.25);
   }
 
-  .post-link {
-    background: var(--pink);
-    color: white;
-  }
-
-  .post-link:hover {
-    filter: brightness(1.1);
-  }
-
   @media (min-width: 1200px) {
     .posts-grid {
       grid-template-columns: repeat(4, 1fr);
@@ -608,9 +599,6 @@
             <p class="post-text">{post.text}</p>
             <div class="post-actions">
               <button class="post-copy" type="button" on:click={() => copyPost(post.text)}>Copy text</button>
-              {#if post.link}
-                <a class="post-link" href={post.link} target="_blank" rel="noopener noreferrer">Open link</a>
-              {/if}
               <div class="share-wrap" on:click|stopPropagation>
                 <button
                   class="post-share"
