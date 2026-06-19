@@ -18,14 +18,13 @@
     '🌴 Build intelligence that moves the real world. Future Caribbean is a global Agentic AI buildathon — 40 teams, 10 tracks, $70K prizes, NVIDIA H200 compute, and a live pitch at the NYSE. Applications close July 3 → futurecaribbean.com';
   const HASHTAGS =
     '#FutureCaribbean #AgenticAI #Buildathon #Caribbean #OpenSource #AI #Innovation';
-  const PRESSKIT_POST = { text: PRESSKIT_TEXT, link: LINK };
-
   /** @param {string} text */
   function formatShareText(text) {
     return `${text}\n\n${HASHTAGS}`;
   }
 
   const POST_CATEGORIES = [
+    { id: 'default', label: 'Default' },
     { id: 'launch', label: 'Launch' },
     { id: 'build', label: 'Build' },
     { id: 'prizes', label: 'Prizes' },
@@ -34,6 +33,8 @@
     { id: 'timeline', label: 'Timeline' },
     { id: 'ecosystem', label: 'Ecosystem' },
   ];
+
+  const REAL_CATEGORIES = POST_CATEGORIES.filter((c) => c.id !== 'default');
 
   const SHARE_PROVIDERS = [
     { id: 'native', label: 'Device share sheet' },
@@ -45,36 +46,33 @@
     { id: 'facebook', label: 'Facebook' },
   ];
 
-  let openShareId = null;
-  /** @type {string | null} */
-  let selectedCategory = null;
+  let selectedCategory = 'default';
+  let activePost = { text: PRESSKIT_TEXT, link: LINK, id: 'presskit' };
 
-  $: filteredPosts = selectedCategory
-    ? data.posts.filter((post) => post.category === selectedCategory)
-    : data.posts;
-
-  $: activeCategory = POST_CATEGORIES.find((category) => category.id === selectedCategory);
+  /** @template T @param {T[]} arr @returns {T} */
+  function pickRandom(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
 
   function selectCategory(categoryId) {
-    selectedCategory = selectedCategory === categoryId ? null : categoryId;
-    closeShareMenu();
+    selectedCategory = categoryId;
   }
 
-  function toggleShareMenu(postId) {
-    openShareId = openShareId === postId ? null : postId;
+  function generatePost() {
+    let category = selectedCategory;
+    if (category === 'default') {
+      category = pickRandom(REAL_CATEGORIES).id;
+      selectedCategory = category;
+    }
+    const pool = data.posts.filter((p) => p.category === category);
+    if (!pool.length) return;
+    const post = pickRandom(pool);
+    activePost = { text: post.text, link: post.link || LINK, id: post.id };
   }
 
-  function closeShareMenu() {
-    openShareId = null;
-  }
-
-  async function copyPost(text) {
-    await navigator.clipboard.writeText(text);
-  }
-
-  async function copyPresskit() {
-    await navigator.clipboard.writeText(formatShareText(PRESSKIT_TEXT));
-    alert('Presskit post copied to clipboard.');
+  async function copyActivePost() {
+    await navigator.clipboard.writeText(formatShareText(activePost.text));
+    alert('Post copied to clipboard.');
   }
 
   /**
@@ -149,17 +147,7 @@
     }
   }
 
-  async function sharePresskit(providerId) {
-    await shareToProvider(PRESSKIT_POST, providerId);
-  }
-
-  async function sharePost(post, providerId) {
-    closeShareMenu();
-    await shareToProvider({ text: post.text, link: post.link || LINK }, providerId);
-  }
 </script>
-
-<svelte:window on:click={closeShareMenu} />
 
 <style>
   .page {
@@ -350,52 +338,17 @@
     color: rgba(248, 251, 252, 0.35);
   }
 
-  .posts-section {
-    border-top: 1px solid var(--border);
-    padding: 3.5rem 1.5rem 4.5rem;
-    background: linear-gradient(180deg, rgba(6, 13, 18, 0.35), rgba(6, 13, 18, 0.85));
-  }
-
-  .posts-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    width: 100%;
-  }
-
-  .posts-header {
-    margin: 0 auto 2rem;
-    text-align: center;
-  }
-
-  .posts-header h2 {
-    margin: 0 0 0.75rem;
-    font-size: clamp(1.8rem, 4vw, 2.6rem);
-    font-weight: 800;
-    letter-spacing: -0.02em;
-  }
-
-  .posts-header h2 em {
-    font-family: 'Instrument Serif', Georgia, serif;
-    font-style: italic;
-    font-weight: 400;
-    color: var(--cyan);
-  }
-
-  .posts-header p {
-    margin: 0;
-    color: var(--muted);
-    font-size: 0.95rem;
-  }
-
   .category-filters {
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
     gap: 0.5rem;
-    margin: 0 auto 2rem;
+    margin: 0 0 0.85rem;
   }
 
   .category-pill {
+    display: inline-block;
+    width: auto;
+    margin-bottom: 0;
     padding: 0.45rem 0.9rem;
     border-radius: 999px;
     border: 1px solid rgba(44, 219, 240, 0.18);
@@ -421,171 +374,15 @@
     color: var(--cyan);
   }
 
-  .posts-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1.5rem;
-  }
-
-  .post-card {
-    display: flex;
-    flex-direction: column;
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    overflow: visible;
-    background: rgba(6, 13, 18, 0.72);
-    transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
-  }
-
-  .post-card:hover {
-    border-color: rgba(44, 219, 240, 0.28);
-    transform: translateY(-2px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
-  }
-
-  .post-id {
-    display: inline-block;
-    align-self: flex-start;
-    padding: 4px 10px;
-    border-radius: 999px;
-    background: rgba(10, 17, 24, 0.82);
-    border: 1px solid rgba(44, 219, 240, 0.2);
-    color: var(--cyan);
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  .post-body {
-    display: flex;
-    flex-direction: column;
-    gap: 0.85rem;
-    padding: 1rem;
-    flex: 1;
-  }
-
-  .post-text {
-    margin: 0;
-    font-size: 0.9rem;
-    color: rgba(248, 251, 252, 0.88);
-    line-height: 1.5;
-  }
-
-  .post-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: auto;
-  }
-
-  .post-actions > button,
-  .post-actions > a {
-    flex: 1;
-    min-width: calc(50% - 0.25rem);
-    padding: 0.65rem 0.75rem;
-    border-radius: 6px;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    text-align: center;
-    text-decoration: none;
-    cursor: pointer;
+  .generate-btn {
+    margin-bottom: 0;
+    background: var(--cyan);
+    color: var(--ink);
     border: none;
-    width: auto;
-    margin: 0;
-    transition: filter 0.15s ease, background 0.15s ease;
   }
 
-  .share-wrap {
-    position: relative;
-    flex: 0 0 100%;
-    width: 100%;
-  }
-
-  .post-share {
-    width: 100%;
-    padding: 0.65rem 0.75rem;
-    border-radius: 6px;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    text-align: center;
-    cursor: pointer;
-    border: 1px solid rgba(250, 42, 129, 0.35);
-    background: rgba(250, 42, 129, 0.12);
-    color: var(--white);
-    transition: filter 0.15s ease, background 0.15s ease, border-color 0.15s ease;
-  }
-
-  .post-share:hover,
-  .post-share.open {
-    background: rgba(250, 42, 129, 0.22);
-    border-color: rgba(250, 42, 129, 0.55);
-  }
-
-  .share-menu {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: calc(100% + 0.4rem);
-    z-index: 20;
-    margin: 0;
-    padding: 0.35rem;
-    list-style: none;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: rgba(6, 13, 18, 0.96);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
-    max-height: 240px;
-    overflow-y: auto;
-  }
-
-  .share-menu button {
-    display: block;
-    width: 100%;
-    min-width: 0;
-    padding: 0.55rem 0.65rem;
-    border: none;
-    border-radius: 4px;
-    background: transparent;
-    color: rgba(248, 251, 252, 0.9);
-    font-size: 0.78rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    text-transform: none;
-    text-align: left;
-    cursor: pointer;
-  }
-
-  .share-menu button:hover {
-    background: rgba(44, 219, 240, 0.1);
-    color: var(--cyan);
-  }
-
-  .post-copy {
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--white);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-  }
-
-  .post-copy:hover {
-    background: rgba(44, 219, 240, 0.1);
-    border-color: rgba(44, 219, 240, 0.25);
-  }
-
-  @media (min-width: 900px) {
-    .posts-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-
-  @media (min-width: 1100px) {
-    .posts-grid {
-      grid-template-columns: repeat(3, 1fr);
-    }
+  .generate-btn:hover {
+    filter: brightness(1.1);
   }
 </style>
 
@@ -600,8 +397,7 @@
     <p class="eyebrow">Social Presskit</p>
     <h1>Share the <em>Buildathon</em></h1>
     <p class="subtitle">
-      Share Future Caribbean with one click — pick a platform below and we’ll open the compose
-      widget with our post ready to go.
+      Pick a category or leave Default for a surprise, hit Generate, then share to any platform.
     </p>
 
     <div class="share-panel">
@@ -612,91 +408,44 @@
             class="provider-btn"
             class:primary={provider.id === 'native'}
             type="button"
-            on:click={() => sharePresskit(provider.id)}
+            on:click={() => shareToProvider(activePost, provider.id)}
           >
             {provider.label}
           </button>
         {/each}
-        <button class="provider-btn copy" type="button" on:click={copyPresskit}>Copy post text</button>
+        <button class="provider-btn copy" type="button" on:click={copyActivePost}>Copy post text</button>
       </div>
 
       <div class="section">
         <span class="section-label">Post that gets shared</span>
-        <pre>{formatShareText(PRESSKIT_TEXT)}</pre>
-        <p class="small">Links to <a href={LINK} target="_blank" rel="noopener noreferrer">{LINK}</a></p>
+        <pre>{formatShareText(activePost.text)}</pre>
+        <p class="small">
+          Links to
+          <a href={activePost.link || LINK} target="_blank" rel="noopener noreferrer">
+            {activePost.link || LINK}
+          </a>
+        </p>
+      </div>
+
+      <div class="section">
+        <span class="section-label">Category</span>
+        <div class="category-filters" role="toolbar" aria-label="Select post category">
+          {#each POST_CATEGORIES as category (category.id)}
+            <button
+              class="category-pill"
+              class:active={selectedCategory === category.id}
+              type="button"
+              aria-pressed={selectedCategory === category.id}
+              on:click={() => selectCategory(category.id)}
+            >
+              {category.label}
+            </button>
+          {/each}
+        </div>
+        <button class="generate-btn" type="button" on:click={generatePost}>Generate</button>
       </div>
     </div>
 
     <p class="footer-note">Future Caribbean Buildathon • 2026</p>
   </div>
-
-  <section class="posts-section">
-    <div class="posts-container">
-      <div class="posts-header">
-        <h2>Social <em>Posts</em></h2>
-        <p>
-          {#if activeCategory}
-            {filteredPosts.length} {activeCategory.label.toLowerCase()} posts
-          {:else}
-            {data.posts.length} ready-to-publish posts
-          {/if}
-        </p>
-      </div>
-
-      <div class="category-filters" role="toolbar" aria-label="Filter posts by category">
-        {#each POST_CATEGORIES as category (category.id)}
-          <button
-            class="category-pill"
-            class:active={selectedCategory === category.id}
-            type="button"
-            aria-pressed={selectedCategory === category.id}
-            on:click={() => selectCategory(category.id)}
-          >
-            {category.label}
-          </button>
-        {/each}
-      </div>
-
-      <div class="posts-grid">
-      {#each filteredPosts as post (post.id)}
-        <article class="post-card">
-          <div class="post-body">
-            <span class="post-id">{post.id}</span>
-            <p class="post-text">{formatShareText(post.text)}</p>
-            <div class="post-actions">
-              <button class="post-copy" type="button" on:click={() => copyPost(formatShareText(post.text))}>Copy text</button>
-              <div class="share-wrap" on:click|stopPropagation>
-                <button
-                  class="post-share"
-                  class:open={openShareId === post.id}
-                  type="button"
-                  aria-expanded={openShareId === post.id}
-                  aria-haspopup="menu"
-                  on:click={() => toggleShareMenu(post.id)}
-                >
-                  Share ▾
-                </button>
-                {#if openShareId === post.id}
-                  <ul class="share-menu" role="menu">
-                    {#each SHARE_PROVIDERS as provider (provider.id)}
-                      <li role="none">
-                        <button
-                          type="button"
-                          role="menuitem"
-                          on:click={() => sharePost(post, provider.id)}
-                        >
-                          {provider.label}
-                        </button>
-                      </li>
-                    {/each}
-                  </ul>
-                {/if}
-              </div>
-            </div>
-          </div>
-        </article>
-      {/each}
-      </div>
-    </div>
-  </section>
 </div>
