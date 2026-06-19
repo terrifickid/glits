@@ -31,10 +31,12 @@
     })}`;
   }
 
-  /** @param {{ id: string }} post */
-  function buildFacebookShareUrl(post) {
-    const sharePageUrl = new URL(`/share/${post.id}`, window.location.origin).href;
-    return `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(sharePageUrl)}`;
+  /** @param {string} text @param {string} link */
+  function buildFacebookShareUrl(text, link) {
+    return `https://www.facebook.com/sharer/sharer.php?${buildQueryString({
+      u: link,
+      quote: text,
+    })}`;
   }
 
   const POST_CATEGORIES = [
@@ -120,20 +122,9 @@
         }
         break;
       }
-      case 'facebook': {
-        const sharePageUrl = new URL(`/share/${post.id}`, window.location.origin).href;
-        const shareData = { title: 'Future Caribbean', text, url: sharePageUrl };
-        try {
-          if (navigator.share && (!navigator.canShare || navigator.canShare(shareData))) {
-            await navigator.share(shareData);
-            break;
-          }
-        } catch (err) {
-          if (/** @type {Error} */ (err).name === 'AbortError') break;
-        }
-        window.open(buildFacebookShareUrl(post), '_blank', 'noopener,noreferrer');
+      case 'facebook':
+        window.open(buildFacebookShareUrl(text, link), '_blank', 'noopener,noreferrer');
         break;
-      }
       case 'threads':
         window.open(
           `https://www.threads.net/intent/post?text=${encodeURIComponent(text)}`,
