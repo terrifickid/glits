@@ -56,7 +56,7 @@
   let selectedCategory = $state('default');
   let activePost = $state({ text: PRESSKIT_TEXT, link: LINK, id: 'presskit' });
   let displayedPostText = $state(formatShareText(PRESSKIT_TEXT));
-  let isTyping = $state(false);
+  let fullPostText = $derived(formatShareText(activePost.text));
   /** @type {ReturnType<typeof setTimeout> | undefined} */
   let typeTimer;
   let typeGen = 0;
@@ -76,21 +76,18 @@
 
     if (prefersReducedMotion()) {
       displayedPostText = text;
-      isTyping = false;
       return;
     }
 
-    isTyping = true;
     displayedPostText = '';
     let index = 0;
     const total = text.length;
-    const msPerChar = Math.max(5, Math.min(18, Math.floor(2200 / total)));
-    const chunk = total > 200 ? 2 : 1;
+    const msPerChar = Math.max(16, Math.min(42, Math.floor(5200 / total)));
+    const chunk = total > 320 ? 2 : 1;
 
     const tick = () => {
       if (gen !== typeGen) return;
       if (index >= total) {
-        isTyping = false;
         return;
       }
       index = Math.min(total, index + chunk);
@@ -372,15 +369,30 @@
     color: rgba(248, 251, 252, 0.45);
   }
 
-  pre {
-    margin: 0;
+  .post-box {
+    position: relative;
     background: rgba(0, 0, 0, 0.28);
     border: 1px solid rgba(255, 255, 255, 0.06);
-    padding: 1rem;
     border-radius: 8px;
+  }
+
+  .post-box pre {
+    margin: 0;
+    padding: 1rem;
     white-space: pre-wrap;
     font-size: 0.9rem;
     line-height: 1.55;
+  }
+
+  .post-sizer {
+    visibility: hidden;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .post-typed {
+    position: absolute;
+    inset: 0;
     color: rgba(248, 251, 252, 0.88);
   }
 
@@ -482,7 +494,10 @@
 
       <div class="section">
         <span class="section-label">Post that gets shared</span>
-        <pre aria-live="polite">{displayedPostText}</pre>
+        <div class="post-box">
+          <pre class="post-sizer" aria-hidden="true">{fullPostText}</pre>
+          <pre class="post-typed" aria-live="polite">{displayedPostText}</pre>
+        </div>
         <p class="small">
           Links to
           <a href={activePost.link || LINK} target="_blank" rel="noopener noreferrer">
