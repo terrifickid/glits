@@ -30,9 +30,9 @@
       .join('&');
   }
 
-  /** @param {string} host @param {string} text @param {string} link */
-  function buildFeedShareUrl(host, text, link) {
-    return `https://${host}/feed/?${buildQueryString({
+  /** @param {string} text @param {string} link */
+  function buildLinkedInShareUrl(text, link) {
+    return `https://www.linkedin.com/feed/?${buildQueryString({
       shareActive: 'true',
       text,
       shareUrl: link,
@@ -122,9 +122,21 @@
         }
         break;
       }
-      case 'facebook':
-        window.open(buildFeedShareUrl('www.facebook.com', text, link), '_blank', 'noopener,noreferrer');
+      case 'facebook': {
+        // Facebook deprecated quote/text prefill; sharer.php only accepts a link.
+        try {
+          await navigator.clipboard.writeText(text);
+        } catch {
+          /* clipboard may fail on insecure context */
+        }
+        window.open(
+          `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}`,
+          '_blank',
+          'noopener,noreferrer',
+        );
+        alert('Post text copied — paste it into your Facebook post.');
         break;
+      }
       case 'threads':
         window.open(
           `https://www.threads.net/intent/post?text=${encodeURIComponent(text)}`,
@@ -154,7 +166,7 @@
         );
         break;
       case 'linkedin':
-        window.open(buildFeedShareUrl('www.linkedin.com', text, link), '_blank', 'noopener,noreferrer');
+        window.open(buildLinkedInShareUrl(text, link), '_blank', 'noopener,noreferrer');
         break;
       default:
         break;
