@@ -6,5 +6,5 @@ export const HASHTAGS =
 
 /** @param {string} text */
 export function formatShareText(text) {
-  return `${text}\n\n${HASHTAGS}`;
+  return `${text} ${HASHTAGS}`;
 }
