@@ -5,25 +5,6 @@
   /** @type {import('./$types').PageData} */
   let { data } = $props();
 
-  /** @param {Record<string, string>} params */
-  function buildQueryString(params) {
-    return Object.entries(params)
-      .map(
-        ([key, value]) =>
-          `${encodeURIComponent(key)}=${encodeURIComponent(value)}`,
-      )
-      .join("&");
-  }
-
-  /** @param {string} text @param {string} link */
-  function buildLinkedInShareUrl(text, link) {
-    return `https://www.linkedin.com/feed/?${buildQueryString({
-      shareActive: "true",
-      text,
-      shareUrl: link,
-    })}`;
-  }
-
   const POST_CATEGORIES = [
     { id: "default", label: "Default" },
     { id: "launch", label: "Launch" },
@@ -41,7 +22,7 @@
     { id: "x", label: "X" },
     { id: "mastodon", label: "Mastodon" },
     { id: "threads", label: "Threads" },
-    { id: "linkedin", label: "LinkedIn" },
+    { id: "copy", label: "Copy" },
     { id: "whatsapp", label: "WhatsApp" },
   ];
 
@@ -126,11 +107,6 @@
 
   onDestroy(() => clearTimeout(typeTimer));
 
-  async function copyActivePost() {
-    await navigator.clipboard.writeText(formatShareText(activePost.text));
-    alert("Post copied to clipboard.");
-  }
-
   /**
    * @param {{ text: string, link?: string }} post
    * @param {string} providerId
@@ -189,12 +165,9 @@
           "noopener,noreferrer",
         );
         break;
-      case "linkedin":
-        window.open(
-          buildLinkedInShareUrl(text, link),
-          "_blank",
-          "noopener,noreferrer",
-        );
+      case "copy":
+        await navigator.clipboard.writeText(text);
+        alert("Post copied to clipboard.");
         break;
       default:
         break;
@@ -278,13 +251,6 @@
               {provider.label}
             </button>
           {/each}
-          <button
-            class="provider-btn copy"
-            type="button"
-            onclick={copyActivePost}
-          >
-            Copy post text
-          </button>
         </div>
       </div>
     </div>
@@ -469,16 +435,6 @@
   .provider-btn.primary:hover {
     border-color: rgba(250, 42, 129, 0.35);
     background: rgba(250, 42, 129, 0.08);
-  }
-
-  .provider-btn.copy {
-    grid-column: 1 / -1;
-    border-color: rgba(250, 193, 52, 0.25);
-  }
-
-  .provider-btn.copy:hover {
-    border-color: rgba(250, 193, 52, 0.45);
-    background: rgba(250, 193, 52, 0.1);
   }
 
   .section {
