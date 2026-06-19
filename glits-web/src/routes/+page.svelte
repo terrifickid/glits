@@ -52,16 +52,27 @@
     return arr[Math.floor(Math.random() * arr.length)];
   }
 
+  /** @param {string} categoryId */
+  function pickRandomFromCategory(categoryId) {
+    const pool = data.posts.filter((p) => p.category === categoryId);
+    if (!pool.length) return;
+    const post = pickRandom(pool);
+    activePost = { text: post.text, link: post.link || LINK, id: post.id };
+  }
+
+  /** @param {string} categoryId */
   function selectCategory(categoryId) {
     selectedCategory = categoryId;
     if (categoryId === 'default') {
       activePost = { text: PRESSKIT_TEXT, link: LINK, id: 'presskit' };
       return;
     }
-    const pool = data.posts.filter((p) => p.category === categoryId);
-    if (!pool.length) return;
-    const post = pickRandom(pool);
-    activePost = { text: post.text, link: post.link || LINK, id: post.id };
+    pickRandomFromCategory(categoryId);
+  }
+
+  function refreshRandomPost() {
+    if (selectedCategory === 'default') return;
+    pickRandomFromCategory(selectedCategory);
   }
 
   async function copyActivePost() {
@@ -332,11 +343,32 @@
     color: rgba(248, 251, 252, 0.35);
   }
 
+  .category-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .category-row .section-label {
+    margin-bottom: 0;
+  }
+
+  .category-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: min(100%, 12rem);
+  }
+
   .category-select {
-    display: block;
-    width: 100%;
+    display: inline-block;
+    width: auto;
+    flex: 1;
+    min-width: 10rem;
     margin: 0;
-    padding: 0.75rem 1rem;
+    padding: 0.55rem 2.5rem 0.55rem 0.85rem;
     border-radius: 6px;
     border: 1px solid rgba(44, 219, 240, 0.18);
     background: rgba(10, 17, 24, 0.72);
@@ -363,6 +395,33 @@
   .category-select option {
     background: var(--ink);
     color: var(--white);
+  }
+
+  .category-controls .refresh-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+    margin-bottom: 0;
+    border-radius: 50%;
+    border: 1px solid rgba(44, 219, 240, 0.25);
+    background: rgba(44, 219, 240, 0.08);
+    color: var(--cyan);
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+  }
+
+  .category-controls .refresh-btn:hover {
+    border-color: rgba(44, 219, 240, 0.45);
+    background: rgba(44, 219, 240, 0.16);
+    transform: rotate(-30deg);
+  }
+
+  .category-controls .refresh-btn svg {
+    display: block;
   }
 
 </style>
@@ -397,18 +456,45 @@
         <button class="provider-btn copy" type="button" on:click={copyActivePost}>Copy post text</button>
       </div>
 
-      <div class="section">
-        <label class="section-label" for="category-select">Select Post</label>
-        <select
-          id="category-select"
-          class="category-select"
-          bind:value={selectedCategory}
-          on:change={() => selectCategory(selectedCategory)}
-        >
-          {#each POST_CATEGORIES as category (category.id)}
-            <option value={category.id}>{category.label}</option>
-          {/each}
-        </select>
+      <div class="section category-row">
+        <label class="section-label" for="category-select">Category</label>
+        <div class="category-controls">
+          <select
+            id="category-select"
+            class="category-select"
+            bind:value={selectedCategory}
+            on:change={() => selectCategory(selectedCategory)}
+          >
+            {#each POST_CATEGORIES as category (category.id)}
+              <option value={category.id}>{category.label}</option>
+            {/each}
+          </select>
+          {#if selectedCategory !== 'default'}
+            <button
+              type="button"
+              class="refresh-btn"
+              aria-label="Pick another random post from this category"
+              title="Pick another post"
+              on:click={refreshRandomPost}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                <path d="M21 3v5h-5" />
+              </svg>
+            </button>
+          {/if}
+        </div>
       </div>
 
       <div class="section">
