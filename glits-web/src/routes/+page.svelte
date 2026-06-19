@@ -332,41 +332,37 @@
     color: rgba(248, 251, 252, 0.35);
   }
 
-  .category-filters {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.5rem;
-    margin: 0 auto 1.25rem;
-  }
-
-  .category-filters .category-pill {
-    display: inline-block;
-    width: auto;
-    margin-bottom: 0;
-    padding: 0.45rem 0.9rem;
-    border-radius: 999px;
+  .category-select {
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
     border: 1px solid rgba(44, 219, 240, 0.18);
     background: rgba(10, 17, 24, 0.72);
-    color: rgba(248, 251, 252, 0.78);
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
-  }
-
-  .category-pill:hover {
-    border-color: rgba(44, 219, 240, 0.35);
     color: var(--white);
-    transform: translateY(-1px);
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%232cdbf0' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    padding-right: 2.5rem;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
   }
 
-  .category-pill.active {
-    background: rgba(44, 219, 240, 0.14);
+  .category-select:hover,
+  .category-select:focus {
+    outline: none;
     border-color: rgba(44, 219, 240, 0.45);
-    color: var(--cyan);
+    background-color: rgba(44, 219, 240, 0.08);
+  }
+
+  .category-select option {
+    background: var(--ink);
+    color: var(--white);
   }
 
 </style>
@@ -382,7 +378,7 @@
     <p class="eyebrow">Social Presskit</p>
     <h1>Share the <em>Buildathon</em></h1>
     <p class="subtitle">
-      Pick a category to load a random post, or Default for the original presskit text.
+      Choose a category from the dropdown to load a random post, or Default for the original presskit text.
     </p>
 
     <div class="share-panel">
@@ -401,21 +397,18 @@
         <button class="provider-btn copy" type="button" on:click={copyActivePost}>Copy post text</button>
       </div>
 
-      <div class="section category-section">
-        <span class="section-label">Select Post</span>
-        <div class="category-filters" role="toolbar" aria-label="Select post category">
+      <div class="section">
+        <label class="section-label" for="category-select">Select Post</label>
+        <select
+          id="category-select"
+          class="category-select"
+          bind:value={selectedCategory}
+          on:change={() => selectCategory(selectedCategory)}
+        >
           {#each POST_CATEGORIES as category (category.id)}
-            <button
-              class="category-pill"
-              class:active={selectedCategory === category.id}
-              type="button"
-              aria-pressed={selectedCategory === category.id}
-              on:click={() => selectCategory(category.id)}
-            >
-              {category.label}
-            </button>
+            <option value={category.id}>{category.label}</option>
           {/each}
-        </div>
+        </select>
       </div>
 
       <div class="section">
