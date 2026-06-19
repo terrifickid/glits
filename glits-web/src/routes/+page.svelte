@@ -55,9 +55,6 @@
   let selectedCategory = 'default';
   let activePost = { text: PRESSKIT_TEXT, link: LINK, id: 'presskit' };
 
-  $: selectedCategoryLabel =
-    POST_CATEGORIES.find((c) => c.id === selectedCategory)?.label ?? 'Default';
-
   /** @template T @param {T[]} arr @returns {T} */
   function pickRandom(arr) {
     return arr[Math.floor(Math.random() * arr.length)];
@@ -79,11 +76,6 @@
       return;
     }
     pickRandomFromCategory(categoryId);
-  }
-
-  function refreshRandomPost() {
-    if (selectedCategory === 'default') return;
-    pickRandomFromCategory(selectedCategory);
   }
 
   async function copyActivePost() {
@@ -252,7 +244,7 @@
     text-align: left;
   }
 
-  .presskit button:not(.refresh-btn) {
+  .presskit button {
     display: block;
     width: 100%;
     padding: 1rem 1.1rem;
@@ -267,7 +259,7 @@
     transition: filter 0.15s ease, transform 0.15s ease, background 0.15s ease;
   }
 
-  .presskit button:not(.refresh-btn):hover {
+  .presskit button:hover {
     transform: translateY(-1px);
     filter: brightness(1.08);
   }
@@ -348,103 +340,36 @@
     color: rgba(248, 251, 252, 0.35);
   }
 
-  .category-row {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .category-controls {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.55rem;
-  }
-
-  .category-select-wrap {
-    display: inline-grid;
-    align-items: center;
-  }
-
-  .category-select-wrap > .category-select,
-  .category-select-wrap > .category-select-sizer {
-    grid-area: 1 / 1;
-    width: auto;
-    min-width: 0;
-  }
-
-  .category-select-sizer {
-    visibility: hidden;
-    white-space: nowrap;
-    pointer-events: none;
-    padding: 0.5rem 2.1rem 0.5rem 0.95rem;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-    border: 1px solid transparent;
-  }
-
   .category-select {
     display: block;
     width: 100%;
     margin: 0;
-    padding: 0.5rem 2.1rem 0.5rem 0.95rem;
-    border-radius: 999px;
-    border: 1px solid rgba(44, 219, 240, 0.45);
-    background: rgba(44, 219, 240, 0.14);
-    color: var(--cyan);
+    padding: 0.75rem 2.25rem 0.75rem 0.95rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.28);
+    color: var(--white);
     font-family: inherit;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
+    font-size: 0.9rem;
+    font-weight: 500;
     cursor: pointer;
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%232cdbf0' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23f8fbfc' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    background-position: right 0.8rem center;
+    background-position: right 0.85rem center;
     transition: border-color 0.15s ease, background-color 0.15s ease;
   }
 
   .category-select:hover,
   .category-select:focus {
     outline: none;
-    border-color: rgba(44, 219, 240, 0.55);
-    background-color: rgba(44, 219, 240, 0.2);
+    border-color: rgba(44, 219, 240, 0.35);
+    background-color: rgba(0, 0, 0, 0.36);
   }
 
   .category-select option {
     background: var(--ink);
     color: var(--white);
-    text-transform: none;
-    letter-spacing: 0;
-    font-weight: 500;
-  }
-
-  .category-controls .refresh-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.25rem;
-    height: 2.25rem;
-    padding: 0;
-    margin-bottom: 0;
-    border-radius: 50%;
-    border: 1px solid rgba(44, 219, 240, 0.25);
-    background: rgba(44, 219, 240, 0.08);
-    color: var(--cyan);
-    flex-shrink: 0;
-    cursor: pointer;
-    transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
-  }
-
-  .category-controls .refresh-btn:hover {
-    border-color: rgba(44, 219, 240, 0.45);
-    background: rgba(44, 219, 240, 0.16);
-  }
-
-  .category-controls .refresh-btn svg {
-    display: block;
   }
 
 </style>
@@ -481,49 +406,19 @@
         </button>
       </div>
 
-      <div class="section category-row">
+      <div class="section">
         <span class="section-label" id="category-label">Category</span>
-        <div class="category-controls">
-          <div class="category-select-wrap">
-            <select
-              id="category-select"
-              class="category-select"
-              bind:value={selectedCategory}
-              on:change={() => selectCategory(selectedCategory)}
-              aria-labelledby="category-label"
-            >
-              {#each POST_CATEGORIES as category (category.id)}
-                <option value={category.id}>{category.label}</option>
-              {/each}
-            </select>
-            <span class="category-select-sizer" aria-hidden="true">{selectedCategoryLabel}</span>
-          </div>
-          {#if selectedCategory !== 'default'}
-            <button
-              type="button"
-              class="refresh-btn"
-              aria-label="Pick another random post from this category"
-              title="Pick another post"
-              on:click={refreshRandomPost}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
-                <path d="M21 3v5h-5" />
-              </svg>
-            </button>
-          {/if}
-        </div>
+        <select
+          id="category-select"
+          class="category-select"
+          bind:value={selectedCategory}
+          on:change={() => selectCategory(selectedCategory)}
+          aria-labelledby="category-label"
+        >
+          {#each POST_CATEGORIES as category (category.id)}
+            <option value={category.id}>{category.label}</option>
+          {/each}
+        </select>
       </div>
 
       <div class="section">
