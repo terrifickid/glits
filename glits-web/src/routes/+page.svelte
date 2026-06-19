@@ -13,7 +13,7 @@
   import { formatShareText, LINK, PRESSKIT_TEXT } from '$lib/presskit.js';
 
   /** @type {import('./$types').PageData} */
-  export let data;
+  let { data } = $props();
 
   /** @param {Record<string, string>} params */
   function buildQueryString(params) {
@@ -52,8 +52,8 @@
     { id: 'whatsapp', label: 'WhatsApp' },
   ];
 
-  let selectedCategory = 'default';
-  let activePost = { text: PRESSKIT_TEXT, link: LINK, id: 'presskit' };
+  let selectedCategory = $state('default');
+  let activePost = $state({ text: PRESSKIT_TEXT, link: LINK, id: 'presskit' });
 
   /** @template T @param {T[]} arr @returns {T} */
   function pickRandom(arr) {
@@ -396,12 +396,12 @@
             class="provider-btn"
             class:primary={provider.id === 'native'}
             type="button"
-            on:click={() => shareToProvider(activePost, provider.id)}
+            onclick={() => shareToProvider(activePost, provider.id)}
           >
             {provider.label}
           </button>
         {/each}
-        <button class="provider-btn copy" type="button" on:click={copyActivePost}>
+        <button class="provider-btn copy" type="button" onclick={copyActivePost}>
           Copy post text
         </button>
       </div>
@@ -411,8 +411,8 @@
         <select
           id="category-select"
           class="category-select"
-          bind:value={selectedCategory}
-          on:change={() => selectCategory(selectedCategory)}
+          value={selectedCategory}
+          onchange={(e) => selectCategory(e.currentTarget.value)}
           aria-labelledby="category-label"
         >
           {#each POST_CATEGORIES as category (category.id)}
