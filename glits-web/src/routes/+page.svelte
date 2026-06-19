@@ -332,10 +332,6 @@
     color: rgba(248, 251, 252, 0.35);
   }
 
-  .category-section {
-    text-align: center;
-  }
-
   .category-filters {
     display: flex;
     flex-wrap: wrap;
@@ -405,19 +401,9 @@
         <button class="provider-btn copy" type="button" on:click={copyActivePost}>Copy post text</button>
       </div>
 
-      <div class="section">
-        <span class="section-label">Post that gets shared</span>
-        <pre>{formatShareText(activePost.text)}</pre>
-        <p class="small">
-          Links to
-          <a href={activePost.link || LINK} target="_blank" rel="noopener noreferrer">
-            {activePost.link || LINK}
-          </a>
-        </p>
-      </div>
-
       <div class="section category-section">
-        <div class="category-filters" role="toolbar" aria-label="Filter posts by category">
+        <span class="section-label">Select Post</span>
+        <div class="category-filters" role="toolbar" aria-label="Select post category">
           {#each POST_CATEGORIES as category (category.id)}
             <button
               class="category-pill"
@@ -430,6 +416,17 @@
             </button>
           {/each}
         </div>
+      </div>
+
+      <div class="section">
+        <span class="section-label">Post that gets shared</span>
+        <pre>{formatShareText(activePost.text)}</pre>
+        <p class="small">
+          Links to
+          <a href={activePost.link || LINK} target="_blank" rel="noopener noreferrer">
+            {activePost.link || LINK}
+          </a>
+        </p>
       </div>
     </div>
 
