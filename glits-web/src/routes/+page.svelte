@@ -12,19 +12,10 @@
 <script>
   import { onDestroy } from 'svelte';
   import { fly } from 'svelte/transition';
+  import { formatShareText, LINK, PRESSKIT_TEXT } from '$lib/presskit.js';
 
   /** @type {import('./$types').PageData} */
   export let data;
-
-  const LINK = 'https://futurecaribbean.com';
-  const PRESSKIT_TEXT =
-    '🌴 Build intelligence that moves the real world. Future Caribbean is a global Agentic AI buildathon — 40 teams, 10 tracks, $70K prizes, NVIDIA H200 compute, and a live pitch at the NYSE. Applications close July 3 → futurecaribbean.com';
-  const HASHTAGS =
-    '#FutureCaribbean #AgenticAI #Buildathon #Caribbean #OpenSource #AI #Innovation';
-  /** @param {string} text */
-  function formatShareText(text) {
-    return `${text}\n\n${HASHTAGS}`;
-  }
 
   /** @param {Record<string, string>} params */
   function buildQueryString(params) {
@@ -40,6 +31,12 @@
       text,
       shareUrl: link,
     })}`;
+  }
+
+  /** @param {{ id: string }} post */
+  function buildFacebookShareUrl(post) {
+    const sharePageUrl = new URL(`/share/${post.id}`, window.location.origin).href;
+    return `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(sharePageUrl)}`;
   }
 
   const POST_CATEGORIES = [
@@ -187,18 +184,17 @@
         break;
       }
       case 'facebook': {
-        // Facebook deprecated quote/text prefill; sharer.php only accepts a link.
+        const sharePageUrl = new URL(`/share/${post.id}`, window.location.origin).href;
+        const shareData = { title: 'Future Caribbean', text, url: sharePageUrl };
         try {
-          await navigator.clipboard.writeText(text);
-        } catch {
-          /* clipboard may fail on insecure context */
+          if (navigator.share && (!navigator.canShare || navigator.canShare(shareData))) {
+            await navigator.share(shareData);
+            break;
+          }
+        } catch (err) {
+          if (/** @type {Error} */ (err).name === 'AbortError') break;
         }
-        window.open(
-          `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}`,
-          '_blank',
-          'noopener,noreferrer',
-        );
-        alert('Post text copied — paste it into your Facebook post.');
+        window.open(buildFacebookShareUrl(post), '_blank', 'noopener,noreferrer');
         break;
       }
       case 'threads':
