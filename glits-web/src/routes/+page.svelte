@@ -63,6 +63,9 @@
   let selectedCategory = 'default';
   let activePost = { text: PRESSKIT_TEXT, link: LINK, id: 'presskit' };
 
+  $: selectedCategoryLabel =
+    POST_CATEGORIES.find((c) => c.id === selectedCategory)?.label ?? 'Default';
+
   /** @template T @param {T[]} arr @returns {T} */
   function pickRandom(arr) {
     return arr[Math.floor(Math.random() * arr.length)];
@@ -352,43 +355,71 @@
   .category-row {
     display: flex;
     flex-direction: column;
-    align-items: stretch;
+    align-items: flex-start;
   }
 
   .category-controls {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 0.5rem;
   }
 
-  .category-select {
-    display: inline-block;
+  .category-select-wrap {
+    display: inline-grid;
+    align-items: center;
+  }
+
+  .category-select-wrap > .category-select,
+  .category-select-wrap > .category-select-sizer {
+    grid-area: 1 / 1;
     width: auto;
-    flex: 1;
-    min-width: 10rem;
+    min-width: 0;
+  }
+
+  .category-select-sizer {
+    visibility: hidden;
+    white-space: nowrap;
+    pointer-events: none;
+    padding: 0.45rem 2rem 0.45rem 0.9rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border: 1px solid transparent;
+  }
+
+  .category-select {
+    display: block;
+    width: 100%;
     margin: 0;
-    padding: 0.55rem 2.5rem 0.55rem 0.85rem;
-    border-radius: 6px;
-    border: 1px solid rgba(44, 219, 240, 0.18);
-    background: rgba(10, 17, 24, 0.72);
-    color: var(--white);
+    padding: 0.45rem 2rem 0.45rem 0.9rem;
+    border-radius: 999px;
+    border: 1px solid rgba(44, 219, 240, 0.45);
+    background: rgba(44, 219, 240, 0.14);
+    color: var(--cyan);
     font-family: inherit;
-    font-size: 0.9rem;
-    font-weight: 500;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
     cursor: pointer;
     appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%232cdbf0' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    background-position: right 1rem center;
-    padding-right: 2.5rem;
-    transition: border-color 0.15s ease, background-color 0.15s ease;
+    background-position: right 0.75rem center;
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease,
+      color 0.15s ease,
+      transform 0.15s ease;
   }
 
   .category-select:hover,
   .category-select:focus {
     outline: none;
-    border-color: rgba(44, 219, 240, 0.45);
-    background-color: rgba(44, 219, 240, 0.08);
+    border-color: rgba(44, 219, 240, 0.55);
+    background-color: rgba(44, 219, 240, 0.2);
+    transform: translateY(-1px);
   }
 
   .category-select option {
@@ -458,16 +489,19 @@
       <div class="section category-row">
         <label class="section-label" for="category-select">Category</label>
         <div class="category-controls">
-          <select
-            id="category-select"
-            class="category-select"
-            bind:value={selectedCategory}
-            on:change={() => selectCategory(selectedCategory)}
-          >
-            {#each POST_CATEGORIES as category (category.id)}
-              <option value={category.id}>{category.label}</option>
-            {/each}
-          </select>
+          <div class="category-select-wrap">
+            <select
+              id="category-select"
+              class="category-select"
+              bind:value={selectedCategory}
+              on:change={() => selectCategory(selectedCategory)}
+            >
+              {#each POST_CATEGORIES as category (category.id)}
+                <option value={category.id}>{category.label}</option>
+              {/each}
+            </select>
+            <span class="category-select-sizer" aria-hidden="true">{selectedCategoryLabel}</span>
+          </div>
           {#if selectedCategory !== 'default'}
             <button
               type="button"
