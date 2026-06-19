@@ -82,7 +82,7 @@
     displayedPostText = '';
     let index = 0;
     const total = text.length;
-    const msPerChar = Math.max(16, Math.min(42, Math.floor(5200 / total)));
+    const msPerChar = Math.max(12, Math.min(32, Math.floor(3800 / total)));
     const chunk = total > 320 ? 2 : 1;
 
     const tick = () => {
