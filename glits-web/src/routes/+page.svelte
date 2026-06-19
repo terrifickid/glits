@@ -138,15 +138,19 @@
           'noopener,noreferrer',
         );
         break;
-      case 'linkedin':
+      case 'linkedin': {
+        const params = new URLSearchParams({
+          shareActive: 'true',
+          text,
+          shareUrl: link,
+        });
         window.open(
-          `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(link)}`,
+          `https://www.linkedin.com/feed/?${params.toString()}`,
           '_blank',
           'noopener,noreferrer',
         );
-        await navigator.clipboard.writeText(text);
-        alert('Post text copied — paste it into your LinkedIn post.');
         break;
+      }
       default:
         break;
     }
