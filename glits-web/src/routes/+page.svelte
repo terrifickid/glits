@@ -10,6 +10,7 @@
 </svelte:head>
 
 <script>
+  import { onDestroy } from 'svelte';
   import { formatShareText, LINK, PRESSKIT_TEXT } from '$lib/presskit.js';
 
   /** @type {import('./$types').PageData} */
@@ -54,6 +55,68 @@
 
   let selectedCategory = $state('default');
   let activePost = $state({ text: PRESSKIT_TEXT, link: LINK, id: 'presskit' });
+  let displayedPostText = $state(formatShareText(PRESSKIT_TEXT));
+  let isTyping = $state(false);
+  let postFlashing = $state(false);
+  /** @type {ReturnType<typeof setTimeout> | undefined} */
+  let typeTimer;
+  let typeGen = 0;
+  let postAnimKey = 0;
+
+  /** @param {string} text */
+  function startTypewriter(text) {
+    const gen = ++typeGen;
+    clearTimeout(typeTimer);
+
+    const reduced =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (reduced) {
+      displayedPostText = text;
+      isTyping = false;
+      return;
+    }
+
+    isTyping = true;
+    displayedPostText = '';
+    let index = 0;
+    const total = text.length;
+    const msPerChar = Math.max(5, Math.min(18, Math.floor(2200 / total)));
+    const chunk = total > 200 ? 2 : 1;
+
+    const tick = () => {
+      if (gen !== typeGen) return;
+      if (index >= total) {
+        isTyping = false;
+        return;
+      }
+      index = Math.min(total, index + chunk);
+      displayedPostText = text.slice(0, index);
+      typeTimer = setTimeout(tick, msPerChar);
+    };
+
+    tick();
+  }
+
+  function flashPostTerminal() {
+    postFlashing = true;
+    setTimeout(() => {
+      postFlashing = false;
+    }, 450);
+  }
+
+  /** @param {{ text: string, link?: string, id: string }} post */
+  function setActivePost(post) {
+    activePost = post;
+    postAnimKey += 1;
+    flashPostTerminal();
+  }
+
+  $effect(() => {
+    postAnimKey;
+    startTypewriter(formatShareText(activePost.text));
+  });
 
   /** @template T @param {T[]} arr @returns {T} */
   function pickRandom(arr) {
@@ -65,18 +128,20 @@
     const pool = data.posts.filter((p) => p.category === categoryId);
     if (!pool.length) return;
     const post = pickRandom(pool);
-    activePost = { text: post.text, link: post.link || LINK, id: post.id };
+    setActivePost({ text: post.text, link: post.link || LINK, id: post.id });
   }
 
   /** @param {string} categoryId */
   function selectCategory(categoryId) {
     selectedCategory = categoryId;
     if (categoryId === 'default') {
-      activePost = { text: PRESSKIT_TEXT, link: LINK, id: 'presskit' };
+      setActivePost({ text: PRESSKIT_TEXT, link: LINK, id: 'presskit' });
       return;
     }
     pickRandomFromCategory(categoryId);
   }
+
+  onDestroy(() => clearTimeout(typeTimer));
 
   async function copyActivePost() {
     await navigator.clipboard.writeText(formatShareText(activePost.text));
@@ -313,16 +378,95 @@
     color: rgba(248, 251, 252, 0.45);
   }
 
-  pre {
-    margin: 0;
-    background: rgba(0, 0, 0, 0.28);
+  @keyframes cursor-blink {
+    0%,
+    49% {
+      opacity: 1;
+    }
+    50%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes terminal-flash {
+    0% {
+      border-color: rgba(44, 219, 240, 0.55);
+      box-shadow:
+        0 0 0 1px rgba(44, 219, 240, 0.2),
+        0 0 28px rgba(44, 219, 240, 0.18);
+    }
+    100% {
+      border-color: rgba(255, 255, 255, 0.06);
+      box-shadow: none;
+    }
+  }
+
+  @keyframes scanline {
+    0% {
+      transform: translateY(-100%);
+    }
+    100% {
+      transform: translateY(100%);
+    }
+  }
+
+  .post-terminal {
+    position: relative;
+    overflow: hidden;
+    border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.06);
-    padding: 1rem;
-    border-radius: 8px;
+    background:
+      linear-gradient(180deg, rgba(0, 0, 0, 0.34), rgba(6, 13, 18, 0.5)),
+      rgba(0, 0, 0, 0.28);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  }
+
+  .post-terminal.flash {
+    animation: terminal-flash 0.45s ease-out;
+  }
+
+  .post-terminal-scanline {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      transparent 0%,
+      rgba(44, 219, 240, 0.04) 48%,
+      rgba(44, 219, 240, 0.08) 50%,
+      rgba(44, 219, 240, 0.04) 52%,
+      transparent 100%
+    );
+    animation: scanline 5s linear infinite;
+    opacity: 0.7;
+  }
+
+  .post-output {
+    margin: 0;
+    padding: 1rem 1rem 1.1rem;
     white-space: pre-wrap;
     font-size: 0.9rem;
     line-height: 1.55;
-    color: rgba(248, 251, 252, 0.88);
+    color: rgba(248, 251, 252, 0.9);
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    min-height: 6.5rem;
+  }
+
+  .post-cursor {
+    display: inline-block;
+    margin-left: 1px;
+    color: var(--cyan);
+    font-weight: 700;
+    opacity: 0;
+  }
+
+  .post-cursor.blink {
+    animation: cursor-blink 0.9s step-end infinite;
+  }
+
+  .post-terminal.typing .post-output {
+    color: rgba(248, 251, 252, 0.96);
   }
 
   .small {
@@ -370,6 +514,13 @@
   .category-select option {
     background: var(--ink);
     color: var(--white);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .post-terminal-scanline,
+    .post-cursor.blink {
+      animation: none;
+    }
   }
 
 </style>
@@ -423,7 +574,16 @@
 
       <div class="section">
         <span class="section-label">Post that gets shared</span>
-        <pre>{formatShareText(activePost.text)}</pre>
+        <div
+          class="post-terminal"
+          class:typing={isTyping}
+          class:flash={postFlashing}
+          aria-live="polite"
+        >
+          <div class="post-terminal-scanline" aria-hidden="true"></div>
+          <pre class="post-output">
+{displayedPostText}<span class="post-cursor" class:blink={isTyping}>▋</span></pre>
+        </div>
         <p class="small">
           Links to
           <a href={activePost.link || LINK} target="_blank" rel="noopener noreferrer">
