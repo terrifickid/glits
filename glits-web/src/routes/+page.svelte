@@ -62,17 +62,72 @@
   let typeTimer;
   let typeGen = 0;
   let postAnimKey = 0;
+  let isGlitching = $state(false);
+  let glitchCorruptText = $state('');
+  /** @type {ReturnType<typeof setTimeout> | undefined} */
+  let glitchTimer;
+  /** @type {ReturnType<typeof setInterval> | undefined} */
+  let glitchBurstTimer;
+
+  const GLITCH_CHARS = '█▓▒░╔╗╚╝═║@#$%&*!?/_<>[]01▄▀';
+
+  function prefersReducedMotion() {
+    return (
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    );
+  }
+
+  /** @param {string} text @param {number} [intensity] */
+  function corruptText(text, intensity = 0.35) {
+    return [...text]
+      .map((ch) => {
+        if (ch === ' ' || ch === '\n') return ch;
+        if (Math.random() < intensity) {
+          return GLITCH_CHARS[Math.floor(Math.random() * GLITCH_CHARS.length)];
+        }
+        return ch;
+      })
+      .join('');
+  }
+
+  function scheduleNextGlitch() {
+    clearTimeout(glitchTimer);
+    if (prefersReducedMotion()) return;
+    const delay = 9000 + Math.random() * 21000;
+    glitchTimer = setTimeout(triggerGlitch, delay);
+  }
+
+  function triggerGlitch() {
+    if (prefersReducedMotion() || isTyping) {
+      scheduleNextGlitch();
+      return;
+    }
+
+    const source = displayedPostText;
+    isGlitching = true;
+    let ticks = 0;
+    const maxTicks = 7 + Math.floor(Math.random() * 7);
+
+    clearInterval(glitchBurstTimer);
+    glitchBurstTimer = setInterval(() => {
+      glitchCorruptText = corruptText(source, 0.18 + Math.random() * 0.45);
+      ticks += 1;
+      if (ticks >= maxTicks) {
+        clearInterval(glitchBurstTimer);
+        isGlitching = false;
+        glitchCorruptText = '';
+        scheduleNextGlitch();
+      }
+    }, 40 + Math.floor(Math.random() * 35));
+  }
 
   /** @param {string} text */
   function startTypewriter(text) {
     const gen = ++typeGen;
     clearTimeout(typeTimer);
 
-    const reduced =
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    if (reduced) {
+    if (prefersReducedMotion()) {
       displayedPostText = text;
       isTyping = false;
       return;
@@ -118,6 +173,15 @@
     startTypewriter(formatShareText(activePost.text));
   });
 
+  $effect(() => {
+    if (typeof window === 'undefined') return;
+    scheduleNextGlitch();
+    return () => {
+      clearTimeout(glitchTimer);
+      clearInterval(glitchBurstTimer);
+    };
+  });
+
   /** @template T @param {T[]} arr @returns {T} */
   function pickRandom(arr) {
     return arr[Math.floor(Math.random() * arr.length)];
@@ -141,7 +205,11 @@
     pickRandomFromCategory(categoryId);
   }
 
-  onDestroy(() => clearTimeout(typeTimer));
+  onDestroy(() => {
+    clearTimeout(typeTimer);
+    clearTimeout(glitchTimer);
+    clearInterval(glitchBurstTimer);
+  });
 
   async function copyActivePost() {
     await navigator.clipboard.writeText(formatShareText(activePost.text));
@@ -411,6 +479,154 @@
     }
   }
 
+  @keyframes cp-glitch-shake {
+    0% {
+      transform: translate(0);
+    }
+    15% {
+      transform: translate(-4px, 2px) skewX(-2deg);
+    }
+    30% {
+      transform: translate(5px, -1px) skewX(1.5deg);
+    }
+    45% {
+      transform: translate(-2px, -3px);
+    }
+    60% {
+      transform: translate(3px, 1px) skewX(-1deg);
+    }
+    75% {
+      transform: translate(-5px, 0);
+    }
+    100% {
+      transform: translate(0);
+    }
+  }
+
+  @keyframes cp-terminal-flicker {
+    0%,
+    100% {
+      opacity: 1;
+      filter: brightness(1);
+    }
+    25% {
+      opacity: 0.82;
+      filter: brightness(1.35) saturate(1.4);
+    }
+    50% {
+      opacity: 0.95;
+      filter: brightness(0.85) hue-rotate(-15deg);
+    }
+    75% {
+      opacity: 0.78;
+      filter: brightness(1.5) hue-rotate(20deg);
+    }
+  }
+
+  @keyframes cp-rgb-cyan {
+    0%,
+    100% {
+      transform: translate(0);
+      opacity: 0;
+    }
+    20% {
+      transform: translate(-4px, 1px);
+      opacity: 0.9;
+    }
+    40% {
+      transform: translate(3px, -2px);
+      opacity: 0.55;
+    }
+    60% {
+      transform: translate(-2px, 2px);
+      opacity: 0.75;
+    }
+  }
+
+  @keyframes cp-rgb-magenta {
+    0%,
+    100% {
+      transform: translate(0);
+      opacity: 0;
+    }
+    15% {
+      transform: translate(4px, -1px);
+      opacity: 0.85;
+    }
+    35% {
+      transform: translate(-3px, 2px);
+      opacity: 0.6;
+    }
+    55% {
+      transform: translate(2px, -2px);
+      opacity: 0.8;
+    }
+  }
+
+  @keyframes cp-slice {
+    0% {
+      clip-path: inset(0 0 0 0);
+    }
+    12% {
+      clip-path: inset(8% 0 62% 0);
+    }
+    24% {
+      clip-path: inset(72% 0 4% 0);
+    }
+    36% {
+      clip-path: inset(38% 0 38% 0);
+    }
+    48% {
+      clip-path: inset(0 0 0 0);
+    }
+    60% {
+      clip-path: inset(55% 0 18% 0);
+    }
+    72% {
+      clip-path: inset(12% 0 70% 0);
+    }
+    100% {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+
+  @keyframes cp-noise {
+    0% {
+      transform: translate(0, 0);
+      opacity: 0.15;
+    }
+    25% {
+      transform: translate(-5%, 3%);
+      opacity: 0.45;
+    }
+    50% {
+      transform: translate(4%, -4%);
+      opacity: 0.3;
+    }
+    75% {
+      transform: translate(-3%, -2%);
+      opacity: 0.5;
+    }
+    100% {
+      transform: translate(2%, 4%);
+      opacity: 0.2;
+    }
+  }
+
+  @keyframes cp-bars {
+    0% {
+      transform: translateY(0);
+      opacity: 0;
+    }
+    10% {
+      opacity: 0.9;
+    }
+    100% {
+      transform: translateY(120%);
+      opacity: 0;
+    }
+  }
+
   .post-terminal {
     position: relative;
     overflow: hidden;
@@ -424,6 +640,16 @@
 
   .post-terminal.flash {
     animation: terminal-flash 0.45s ease-out;
+  }
+
+  .post-terminal.glitching {
+    animation: cp-terminal-flicker 0.12s steps(2) 6;
+    border-color: rgba(250, 42, 129, 0.75);
+    box-shadow:
+      0 0 0 1px rgba(44, 219, 240, 0.35),
+      0 0 24px rgba(250, 42, 129, 0.45),
+      0 0 48px rgba(44, 219, 240, 0.2),
+      inset 0 0 40px rgba(250, 42, 129, 0.06);
   }
 
   .post-terminal-scanline {
@@ -440,6 +666,90 @@
     );
     animation: scanline 5s linear infinite;
     opacity: 0.7;
+  }
+
+  .post-glitch-noise {
+    pointer-events: none;
+    position: absolute;
+    inset: -20%;
+    z-index: 4;
+    opacity: 0;
+    background-image:
+      repeating-linear-gradient(
+        0deg,
+        rgba(255, 255, 255, 0.03) 0,
+        rgba(255, 255, 255, 0.03) 1px,
+        transparent 1px,
+        transparent 3px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        rgba(44, 219, 240, 0.04) 0,
+        rgba(44, 219, 240, 0.04) 1px,
+        transparent 1px,
+        transparent 4px
+      );
+    mix-blend-mode: overlay;
+  }
+
+  .post-terminal.glitching .post-glitch-noise {
+    animation: cp-noise 0.18s steps(3) infinite;
+  }
+
+  .post-glitch-bars {
+    pointer-events: none;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -40%;
+    height: 30%;
+    z-index: 3;
+    opacity: 0;
+    background: linear-gradient(
+      180deg,
+      transparent,
+      rgba(44, 219, 240, 0.35) 40%,
+      rgba(250, 42, 129, 0.5) 55%,
+      transparent
+    );
+  }
+
+  .post-terminal.glitching .post-glitch-bars {
+    animation: cp-bars 0.4s linear 1;
+  }
+
+  .post-output-stack {
+    position: relative;
+    z-index: 1;
+  }
+
+  .post-terminal.glitching .post-output-stack {
+    animation: cp-glitch-shake 0.35s steps(4) 1;
+  }
+
+  .post-output-ghost {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    margin: 0;
+    padding: 1rem 1rem 1.1rem;
+    white-space: pre-wrap;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    mix-blend-mode: screen;
+  }
+
+  .post-output-ghost-cyan {
+    color: var(--cyan);
+    animation: cp-rgb-cyan 0.28s steps(3) infinite;
+    clip-path: polygon(0 0, 100% 0, 100% 48%, 0 48%);
+  }
+
+  .post-output-ghost-magenta {
+    color: var(--pink);
+    animation: cp-rgb-magenta 0.22s steps(3) infinite;
+    clip-path: polygon(0 52%, 100% 52%, 100% 100%, 0 100%);
   }
 
   .post-output {
@@ -467,6 +777,13 @@
 
   .post-terminal.typing .post-output {
     color: rgba(248, 251, 252, 0.96);
+  }
+
+  .post-terminal.glitching .post-output {
+    animation: cp-slice 0.32s steps(4) 1;
+    text-shadow:
+      2px 0 rgba(44, 219, 240, 0.8),
+      -2px 0 rgba(250, 42, 129, 0.8);
   }
 
   .small {
@@ -518,7 +835,12 @@
 
   @media (prefers-reduced-motion: reduce) {
     .post-terminal-scanline,
-    .post-cursor.blink {
+    .post-cursor.blink,
+    .post-terminal.glitching,
+    .post-terminal.glitching .post-output,
+    .post-terminal.glitching .post-output-stack,
+    .post-terminal.glitching .post-glitch-noise,
+    .post-terminal.glitching .post-glitch-bars {
       animation: none;
     }
   }
@@ -578,11 +900,22 @@
           class="post-terminal"
           class:typing={isTyping}
           class:flash={postFlashing}
+          class:glitching={isGlitching}
           aria-live="polite"
         >
           <div class="post-terminal-scanline" aria-hidden="true"></div>
-          <pre class="post-output">
-{displayedPostText}<span class="post-cursor" class:blink={isTyping}>▋</span></pre>
+          <div class="post-glitch-noise" aria-hidden="true"></div>
+          <div class="post-glitch-bars" aria-hidden="true"></div>
+          <div class="post-output-stack">
+            {#if isGlitching}
+              <pre class="post-output-ghost post-output-ghost-cyan" aria-hidden="true">
+{glitchCorruptText}<span class="post-cursor">▋</span></pre>
+              <pre class="post-output-ghost post-output-ghost-magenta" aria-hidden="true">
+{glitchCorruptText}<span class="post-cursor">▋</span></pre>
+            {/if}
+            <pre class="post-output">
+{displayedPostText}<span class="post-cursor" class:blink={isTyping && !isGlitching}>▋</span></pre>
+          </div>
         </div>
         <p class="small">
           Links to
