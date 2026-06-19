@@ -11,6 +11,7 @@
 
 <script>
   import { onDestroy } from 'svelte';
+  import { createCyberGlitchEngine } from '$lib/cyber-glitch-webgl.js';
   import { formatShareText, LINK, PRESSKIT_TEXT } from '$lib/presskit.js';
 
   /** @type {import('./$types').PageData} */
@@ -72,6 +73,17 @@
   let glitchTimer;
   /** @type {ReturnType<typeof setInterval> | undefined} */
   let glitchBurstTimer;
+
+  /** @type {HTMLCanvasElement | undefined} */
+  let overlayCanvas;
+  /** @type {HTMLCanvasElement | undefined} */
+  let displacementCanvas;
+  /** @type {ReturnType<typeof createCyberGlitchEngine> | null} */
+  let cyberEngine = null;
+  let warpFilter = $state('none');
+  let dispScale = $state(0);
+  let pageWarpStyle = $state('');
+  let webglReady = $state(false);
 
   const GLITCH_CHARS = '█▓▒░╔╗╚╝═║@#$%&*!?/_<>[]01▄▀▐▌░▒▓╳╬◢◣◤◥';
   const SIGNAL_PHRASES = [
@@ -135,6 +147,7 @@
     if (severity === 'major') {
       isPageGlitching = true;
     }
+    cyberEngine?.setActive(true, severity);
 
     const source = displayedPostText;
     let ticks = 0;
@@ -158,6 +171,7 @@
         isPageGlitching = false;
         glitchCorruptText = '';
         glitchSignalText = '';
+        cyberEngine?.setActive(false);
         scheduleNextGlitch();
       }
     }, (severity === 'major' ? 22 : 38) + Math.floor(Math.random() * (severity === 'major' ? 28 : 32)));
@@ -223,6 +237,47 @@
     };
   });
 
+  $effect(() => {
+    if (!overlayCanvas || !displacementCanvas) return;
+    cyberEngine = createCyberGlitchEngine({ overlayCanvas, displacementCanvas });
+    webglReady = cyberEngine.supported;
+    const onResize = () => cyberEngine?.resize();
+    window.addEventListener('resize', onResize);
+    let frame = 0;
+    const tick = () => {
+      const state = cyberEngine?.getFrameState();
+      const dispMap = document.getElementById('cyber-disp-map');
+      const chromaR = document.getElementById('cyber-chroma-r');
+      const chromaB = document.getElementById('cyber-chroma-b');
+      if (state) {
+        dispScale = state.dispScale;
+        warpFilter = 'url(#cyber-warp)';
+        if (dispMap) dispMap.setAttribute('scale', String(state.dispScale));
+        const chroma = state.warp.chromatic * (state.severity === 'major' ? 7 : 3);
+        if (chromaR) chromaR.setAttribute('dx', String(-chroma));
+        if (chromaB) chromaB.setAttribute('dx', String(chroma));
+        const { x, y, rotX, rotY, skew, scale, brightness } = state.warp;
+        pageWarpStyle = `perspective(900px) translate3d(${x}px, ${y}px, 0) rotateX(${rotX}deg) rotateY(${rotY}deg) skewX(${skew}deg) scale(${scale}) brightness(${brightness})`;
+      } else {
+        dispScale = 0;
+        warpFilter = 'none';
+        pageWarpStyle = '';
+        if (dispMap) dispMap.setAttribute('scale', '0');
+        if (chromaR) chromaR.setAttribute('dx', '0');
+        if (chromaB) chromaB.setAttribute('dx', '0');
+      }
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      cancelAnimationFrame(frame);
+      cyberEngine?.destroy();
+      cyberEngine = null;
+      webglReady = false;
+    };
+  });
+
   /** @template T @param {T[]} arr @returns {T} */
   function pickRandom(arr) {
     return arr[Math.floor(Math.random() * arr.length)];
@@ -250,6 +305,7 @@
     clearTimeout(typeTimer);
     clearTimeout(glitchTimer);
     clearInterval(glitchBurstTimer);
+    cyberEngine?.destroy();
   });
 
   async function copyActivePost() {
@@ -348,135 +404,47 @@
     font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
   }
 
-  .page-content.page-shaking {
-    animation: vhs-catastrophe 0.1s steps(6) infinite;
+  .page-content {
+    transform-origin: center center;
     will-change: transform, filter;
   }
 
-  .sys-glitch-overlay {
+  .cyber-filter-defs {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
     pointer-events: none;
+  }
+
+  .cyber-disp-canvas {
+    position: fixed;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .cyber-overlay-canvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 99998;
+    pointer-events: none;
+    mix-blend-mode: screen;
+  }
+
+  .cyber-signal {
     position: fixed;
     inset: 0;
     z-index: 99999;
-    overflow: hidden;
-  }
-
-  .sys-glitch-flash {
-    position: absolute;
-    inset: 0;
-    animation: flash-frame 0.12s steps(2) infinite;
-  }
-
-  .sys-glitch-rgb {
-    position: absolute;
-    inset: -8%;
-    mix-blend-mode: screen;
-    animation: rgb-tear 0.09s steps(3) infinite;
-    background:
-      linear-gradient(90deg, rgba(250, 42, 129, 0.55) 0%, transparent 35%),
-      linear-gradient(270deg, rgba(44, 219, 240, 0.55) 0%, transparent 35%),
-      linear-gradient(0deg, rgba(250, 193, 52, 0.35) 0%, transparent 25%);
-  }
-
-  .sys-glitch-noise {
-    position: absolute;
-    inset: -30%;
-    opacity: 0.55;
-    mix-blend-mode: overlay;
-    animation: cp-noise 0.07s steps(5) infinite;
-    background-image:
-      repeating-linear-gradient(
-        0deg,
-        rgba(255, 255, 255, 0.09) 0,
-        rgba(255, 255, 255, 0.09) 1px,
-        transparent 1px,
-        transparent 2px
-      ),
-      repeating-linear-gradient(
-        90deg,
-        rgba(44, 219, 240, 0.07) 0,
-        rgba(44, 219, 240, 0.07) 2px,
-        transparent 2px,
-        transparent 5px
-      ),
-      repeating-linear-gradient(
-        45deg,
-        rgba(250, 42, 129, 0.05) 0,
-        rgba(250, 42, 129, 0.05) 1px,
-        transparent 1px,
-        transparent 4px
-      );
-  }
-
-  .sys-glitch-vhs {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 18%;
-    background: linear-gradient(
-      180deg,
-      transparent,
-      rgba(255, 255, 255, 0.12) 30%,
-      rgba(44, 219, 240, 0.65) 48%,
-      rgba(250, 42, 129, 0.75) 52%,
-      rgba(255, 255, 255, 0.1) 70%,
-      transparent
-    );
-    animation: vhs-tracking 0.35s linear infinite;
-    mix-blend-mode: hard-light;
-  }
-
-  .sys-glitch-vhs-2 {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 8%;
-    top: 40%;
-    background: linear-gradient(
-      180deg,
-      transparent,
-      rgba(250, 193, 52, 0.8) 45%,
-      rgba(250, 42, 129, 0.9) 55%,
-      transparent
-    );
-    animation: vhs-tracking 0.22s linear infinite reverse;
-    mix-blend-mode: color-dodge;
-  }
-
-  .sys-glitch-blocks {
-    position: absolute;
-    inset: 0;
-    animation: block-shift 0.11s steps(4) infinite;
-    background:
-      linear-gradient(90deg, transparent 8%, rgba(250, 42, 129, 0.75) 8%, rgba(250, 42, 129, 0.75) 22%, transparent 22%),
-      linear-gradient(90deg, transparent 55%, rgba(44, 219, 240, 0.7) 55%, rgba(44, 219, 240, 0.7) 68%, transparent 68%),
-      linear-gradient(90deg, transparent 78%, rgba(250, 193, 52, 0.65) 78%, rgba(250, 193, 52, 0.65) 92%, transparent 92%),
-      linear-gradient(0deg, transparent 30%, rgba(66, 231, 171, 0.5) 30%, rgba(66, 231, 171, 0.5) 38%, transparent 38%),
-      linear-gradient(0deg, transparent 72%, rgba(250, 42, 129, 0.6) 72%, rgba(250, 42, 129, 0.6) 80%, transparent 80%);
-    mix-blend-mode: screen;
-    opacity: 0.85;
-  }
-
-  .sys-glitch-interlace {
-    position: absolute;
-    inset: 0;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(0, 0, 0, 0.4) 2px,
-      rgba(0, 0, 0, 0.4) 4px
-    );
-    animation: interlace-flicker 0.08s steps(2) infinite;
-  }
-
-  .sys-glitch-signal {
-    position: absolute;
-    inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 2rem;
+    pointer-events: none;
     font-family: 'Courier New', Courier, monospace;
     font-size: clamp(1.1rem, 5vw, 2.8rem);
     font-weight: 900;
@@ -488,8 +456,8 @@
       4px 0 rgba(250, 42, 129, 0.95),
       -4px 0 rgba(44, 219, 240, 0.95),
       0 0 30px rgba(44, 219, 240, 0.8);
-    animation: signal-flash 0.14s steps(3) infinite;
     mix-blend-mode: screen;
+    animation: signal-flash 0.14s steps(3) infinite;
   }
 
   .site-header {
@@ -689,81 +657,6 @@
     }
   }
 
-  @keyframes vhs-catastrophe {
-    0% {
-      transform: translate(0) skewX(0deg) scale(1);
-      filter: hue-rotate(0deg) contrast(1) saturate(1);
-    }
-    8% {
-      transform: translate(-18px, 6px) skewX(-4deg) scale(1.02);
-      filter: hue-rotate(70deg) contrast(2.2) saturate(2.5) invert(0.08);
-    }
-    16% {
-      transform: translate(22px, -10px) skewX(3deg) scale(0.98);
-      filter: hue-rotate(-50deg) contrast(1.6) saturate(3);
-    }
-    24% {
-      transform: translate(-10px, 14px) skewX(-6deg);
-      filter: hue-rotate(120deg) contrast(2.8) invert(0.15);
-    }
-    32% {
-      transform: translate(16px, -4px) skewX(2deg) scale(1.03);
-      filter: hue-rotate(-90deg) contrast(1.4) saturate(2);
-    }
-    48% {
-      transform: translate(-24px, -8px) skewX(-3deg);
-      filter: hue-rotate(40deg) contrast(2.5) invert(0.05);
-    }
-    64% {
-      transform: translate(8px, 12px) skewX(5deg) scale(0.97);
-      filter: hue-rotate(-120deg) contrast(3) saturate(2.8);
-    }
-    80% {
-      transform: translate(-14px, 2px) skewX(-2deg);
-      filter: hue-rotate(200deg) contrast(1.8);
-    }
-    100% {
-      transform: translate(0) skewX(0deg) scale(1);
-      filter: none;
-    }
-  }
-
-  @keyframes rgb-tear {
-    0% {
-      transform: translate(0);
-      opacity: 0.5;
-    }
-    20% {
-      transform: translate(-18px, 4px) scaleX(1.04);
-      opacity: 0.95;
-    }
-    40% {
-      transform: translate(24px, -8px) scaleX(0.96);
-      opacity: 0.7;
-    }
-    60% {
-      transform: translate(-12px, 10px);
-      opacity: 1;
-    }
-    80% {
-      transform: translate(16px, -4px) scaleY(1.03);
-      opacity: 0.8;
-    }
-    100% {
-      transform: translate(0);
-      opacity: 0.5;
-    }
-  }
-
-  @keyframes vhs-tracking {
-    0% {
-      transform: translateY(-100%);
-    }
-    100% {
-      transform: translateY(100vh);
-    }
-  }
-
   @keyframes signal-flash {
     0%,
     100% {
@@ -788,80 +681,6 @@
     70% {
       opacity: 0.85;
       transform: scale(1.05) skewX(10deg) translateX(-40px);
-    }
-  }
-
-  @keyframes block-shift {
-    0% {
-      clip-path: inset(0 0 0 0);
-      transform: translateX(0);
-    }
-    15% {
-      clip-path: inset(12% 0 58% 0);
-      transform: translateX(-30px);
-    }
-    30% {
-      clip-path: inset(65% 0 8% 0);
-      transform: translateX(40px);
-    }
-    45% {
-      clip-path: inset(35% 0 40% 0);
-      transform: translateX(-20px);
-    }
-    60% {
-      clip-path: inset(78% 0 5% 0);
-      transform: translateX(50px);
-    }
-    75% {
-      clip-path: inset(5% 0 75% 0);
-      transform: translateX(-35px);
-    }
-    100% {
-      clip-path: inset(0 0 0 0);
-      transform: translateX(0);
-    }
-  }
-
-  @keyframes flash-frame {
-    0%,
-    88%,
-    100% {
-      opacity: 0;
-    }
-    8% {
-      opacity: 0.85;
-      background: rgba(250, 42, 129, 0.55);
-    }
-    16% {
-      opacity: 0;
-    }
-    24% {
-      opacity: 0.7;
-      background: rgba(44, 219, 240, 0.5);
-    }
-    32% {
-      opacity: 0;
-    }
-    48% {
-      opacity: 0.9;
-      background: rgba(250, 193, 52, 0.45);
-    }
-    56% {
-      opacity: 0;
-    }
-    72% {
-      opacity: 0.75;
-      background: rgba(66, 231, 171, 0.4);
-    }
-  }
-
-  @keyframes interlace-flicker {
-    0%,
-    100% {
-      opacity: 0.08;
-    }
-    50% {
-      opacity: 0.35;
     }
   }
 
@@ -1217,13 +1036,12 @@
     .post-terminal.glitching .post-output-stack,
     .post-terminal.glitching .post-glitch-noise,
     .post-terminal.glitching .post-glitch-bars,
-    .page-content.page-shaking,
-    .sys-glitch-overlay,
-    .sys-glitch-overlay * {
+    .cyber-signal,
+    .cyber-overlay-canvas {
       animation: none;
     }
 
-    .sys-glitch-overlay {
+    .cyber-overlay-canvas {
       display: none;
     }
   }
@@ -1231,20 +1049,70 @@
 </style>
 
 <div class="page">
-  {#if isPageGlitching}
-    <div class="sys-glitch-overlay" aria-hidden="true">
-      <div class="sys-glitch-flash"></div>
-      <div class="sys-glitch-rgb"></div>
-      <div class="sys-glitch-noise"></div>
-      <div class="sys-glitch-blocks"></div>
-      <div class="sys-glitch-interlace"></div>
-      <div class="sys-glitch-vhs"></div>
-      <div class="sys-glitch-vhs-2"></div>
-      <div class="sys-glitch-signal">{glitchSignalText}</div>
-    </div>
+  <svg class="cyber-filter-defs" aria-hidden="true">
+    <defs>
+      <filter
+        id="cyber-warp"
+        x="-15%"
+        y="-15%"
+        width="130%"
+        height="130%"
+        color-interpolation-filters="sRGB"
+      >
+        <feImage href="#cyber-disp-canvas" result="dispTex" preserveAspectRatio="none" />
+        <feDisplacementMap
+          id="cyber-disp-map"
+          in="SourceGraphic"
+          in2="dispTex"
+          scale="0"
+          xChannelSelector="R"
+          yChannelSelector="G"
+          result="warped"
+        />
+        <feColorMatrix
+          in="warped"
+          type="matrix"
+          values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0"
+          result="chRed"
+        />
+        <feColorMatrix
+          in="warped"
+          type="matrix"
+          values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0"
+          result="chGreen"
+        />
+        <feColorMatrix
+          in="warped"
+          type="matrix"
+          values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0"
+          result="chBlue"
+        />
+        <feOffset id="cyber-chroma-r" in="chRed" dx="0" dy="0" result="chRedOff" />
+        <feOffset id="cyber-chroma-b" in="chBlue" dx="0" dy="0" result="chBlueOff" />
+        <feBlend in="chRedOff" in2="chGreen" mode="screen" result="rg" />
+        <feBlend in="rg" in2="chBlueOff" mode="screen" result="out" />
+      </filter>
+    </defs>
+  </svg>
+
+  <canvas
+    bind:this={displacementCanvas}
+    id="cyber-disp-canvas"
+    class="cyber-disp-canvas"
+    aria-hidden="true"
+  ></canvas>
+  <canvas bind:this={overlayCanvas} class="cyber-overlay-canvas" aria-hidden="true"></canvas>
+
+  {#if isPageGlitching && glitchSignalText}
+    <div class="cyber-signal" aria-hidden="true">{glitchSignalText}</div>
   {/if}
 
-  <div class="page-content" class:page-shaking={isPageGlitching}>
+  <div
+    class="page-content"
+    style:filter={warpFilter}
+    style:transform={pageWarpStyle}
+    class:cyber-warping={isGlitching && webglReady}
+  >
   <header class="site-header">
     <a class="logo-link" href="https://futurecaribbean.com" target="_blank" rel="noopener noreferrer">
       <img src="/fc_logo.png" alt="Future Caribbean" />
