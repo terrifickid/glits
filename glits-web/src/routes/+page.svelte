@@ -218,18 +218,19 @@
 </svelte:head>
 
 <div class="page">
-  <header class="site-header">
-    <a
-      class="logo-link"
-      href="https://futurecaribbean.com"
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      <img src="/fc_logo.png" alt="Future Caribbean" />
-    </a>
-  </header>
+  <div class="page-inner">
+    <header class="site-header">
+      <a
+        class="logo-link"
+        href="https://futurecaribbean.com"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <img src="/fc_logo.png" alt="Future Caribbean" />
+      </a>
+    </header>
 
-  <div class="presskit">
+    <div class="presskit">
     <p class="eyebrow">Social Presskit</p>
     <h1>Share the <em>Buildathon</em></h1>
     <p class="subtitle">
@@ -294,6 +295,7 @@
     </p>
 
     <p class="footer-note">Future Caribbean Buildathon • 2026</p>
+    </div>
   </div>
 </div>
 
@@ -308,6 +310,8 @@
     --white: #f8fbfc;
     --muted: rgba(248, 251, 252, 0.62);
     --border: rgba(44, 219, 240, 0.12);
+    display: flex;
+    flex-direction: column;
     min-height: 100vh;
     background: radial-gradient(
         65% 55% at 78% 12%,
@@ -332,6 +336,16 @@
       linear-gradient(180deg, var(--ink2), var(--ink));
     color: var(--white);
     font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  }
+
+  .page-inner {
+    width: 100%;
+  }
+
+  @media (min-width: 768px) {
+    .page-inner {
+      margin-block: auto;
+    }
   }
 
   .site-header {
