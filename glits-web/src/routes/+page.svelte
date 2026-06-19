@@ -463,7 +463,7 @@
     <p class="eyebrow">Social Presskit</p>
     <h1>Share the <em>Buildathon</em></h1>
     <p class="subtitle">
-      One click. Real builders showing up. Generate & send ready-to-post hype about the 40-team Global Agentic AI sprint — before July 3 closes.
+      One click. Real builders showing up. Generate & send ready-to-post media about the 40-team Global Agentic AI sprint — before July 3 closes.
     </p>
 
     <div class="share-panel">
