@@ -359,6 +359,10 @@
     margin: 1.5rem 0 0;
   }
 
+  .section:first-child {
+    margin-top: 0;
+  }
+
   .section-label {
     display: block;
     margin-bottom: 0.65rem;
@@ -460,23 +464,6 @@
     </p>
 
     <div class="share-panel">
-      <span class="section-label">Share to a platform</span>
-      <div class="provider-grid">
-        {#each SHARE_PROVIDERS as provider (provider.id)}
-          <button
-            class="provider-btn"
-            class:primary={provider.id === 'native'}
-            type="button"
-            onclick={() => shareToProvider(activePost, provider.id)}
-          >
-            {provider.label}
-          </button>
-        {/each}
-        <button class="provider-btn copy" type="button" onclick={copyActivePost}>
-          Copy post text
-        </button>
-      </div>
-
       <div class="section">
         <span class="section-label" id="category-label">Category</span>
         <select
@@ -504,6 +491,25 @@
             {activePost.link || LINK}
           </a>
         </p>
+      </div>
+
+      <div class="section">
+        <span class="section-label">Share to a platform</span>
+        <div class="provider-grid">
+          {#each SHARE_PROVIDERS as provider (provider.id)}
+            <button
+              class="provider-btn"
+              class:primary={provider.id === 'native'}
+              type="button"
+              onclick={() => shareToProvider(activePost, provider.id)}
+            >
+              {provider.label}
+            </button>
+          {/each}
+          <button class="provider-btn copy" type="button" onclick={copyActivePost}>
+            Copy post text
+          </button>
+        </div>
       </div>
     </div>
 
