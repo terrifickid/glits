@@ -63,13 +63,31 @@
   let typeGen = 0;
   let postAnimKey = 0;
   let isGlitching = $state(false);
+  let isPageGlitching = $state(false);
+  /** @type {'minor' | 'major'} */
+  let glitchSeverity = $state('minor');
   let glitchCorruptText = $state('');
+  let glitchSignalText = $state('');
   /** @type {ReturnType<typeof setTimeout> | undefined} */
   let glitchTimer;
   /** @type {ReturnType<typeof setInterval> | undefined} */
   let glitchBurstTimer;
 
-  const GLITCH_CHARS = '█▓▒░╔╗╚╝═║@#$%&*!?/_<>[]01▄▀';
+  const GLITCH_CHARS = '█▓▒░╔╗╚╝═║@#$%&*!?/_<>[]01▄▀▐▌░▒▓╳╬◢◣◤◥';
+  const SIGNAL_PHRASES = [
+    '█░▒▓ NO SIGNAL ▓▒░█',
+    'NET::SYNC_LOST 0x4F2A',
+    '▌▌▌ HF CARRIER DROP ▌▌▌',
+    'ERR_80: FRAME DESYNC',
+    '░░ PACKET CORRUPT ░░',
+    '◢◤ VHS TRACKING FAIL ◢◤',
+    '▀▄▀▄▀▄▀▄▀▄▀▄▀▄',
+    'SIGNAL: ██░░░░ 23%',
+    '▓▓ CARRIER LOST ▓▓',
+    '0xDEAD 0xBEEF 0x80S',
+    '╳╳╳ SYNC ERROR ╳╳╳',
+    '▒▒ GHOST FRAME ▒▒',
+  ];
 
   function prefersReducedMotion() {
     return (
@@ -94,32 +112,55 @@
   function scheduleNextGlitch() {
     clearTimeout(glitchTimer);
     if (prefersReducedMotion()) return;
-    const delay = 9000 + Math.random() * 21000;
-    glitchTimer = setTimeout(triggerGlitch, delay);
+    const delay = 4500 + Math.random() * 14000;
+    glitchTimer = setTimeout(() => {
+      triggerGlitch(Math.random() < 0.55 ? 'major' : 'minor');
+    }, delay);
   }
 
-  function triggerGlitch() {
-    if (prefersReducedMotion() || isTyping) {
+  /** @param {'minor' | 'major'} severity */
+  function triggerGlitch(severity) {
+    if (prefersReducedMotion()) {
       scheduleNextGlitch();
       return;
     }
 
-    const source = displayedPostText;
+    if (severity === 'minor' && isTyping) {
+      scheduleNextGlitch();
+      return;
+    }
+
+    glitchSeverity = severity;
     isGlitching = true;
+    if (severity === 'major') {
+      isPageGlitching = true;
+    }
+
+    const source = displayedPostText;
     let ticks = 0;
-    const maxTicks = 7 + Math.floor(Math.random() * 7);
+    const maxTicks =
+      severity === 'major'
+        ? 22 + Math.floor(Math.random() * 28)
+        : 9 + Math.floor(Math.random() * 9);
 
     clearInterval(glitchBurstTimer);
     glitchBurstTimer = setInterval(() => {
-      glitchCorruptText = corruptText(source, 0.18 + Math.random() * 0.45);
+      const intensity =
+        severity === 'major' ? 0.4 + Math.random() * 0.55 : 0.22 + Math.random() * 0.45;
+      glitchCorruptText = corruptText(source, intensity);
+      if (severity === 'major') {
+        glitchSignalText = SIGNAL_PHRASES[Math.floor(Math.random() * SIGNAL_PHRASES.length)];
+      }
       ticks += 1;
       if (ticks >= maxTicks) {
         clearInterval(glitchBurstTimer);
         isGlitching = false;
+        isPageGlitching = false;
         glitchCorruptText = '';
+        glitchSignalText = '';
         scheduleNextGlitch();
       }
-    }, 40 + Math.floor(Math.random() * 35));
+    }, (severity === 'major' ? 22 : 38) + Math.floor(Math.random() * (severity === 'major' ? 28 : 32)));
   }
 
   /** @param {string} text */
