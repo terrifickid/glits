@@ -61,6 +61,37 @@
   let typeTimer;
   let typeGen = 0;
   let postAnimKey = 0;
+  let subtitleSeed = 0;
+
+  /** @param {string} text */
+  function postToTeaser(text) {
+    let teaser = text.replace(/^[\p{Extended_Pictographic}\s]+/u, '');
+    teaser = teaser.replace(/\s*futurecaribbean\.com\s*/gi, '').replace(/\s+/g, ' ').trim();
+    if (teaser.length <= 155) return teaser;
+    const cut = teaser.slice(0, 152);
+    const lastSpace = cut.lastIndexOf(' ');
+    return `${lastSpace > 80 ? cut.slice(0, lastSpace) : cut}…`;
+  }
+
+  /** @param {string} categoryId @param {Array<{ text: string, category: string }>} posts */
+  function pickSubtitle(categoryId, posts) {
+    const pool =
+      categoryId === 'default'
+        ? posts.filter((p) => p.category === 'launch' || p.category === 'build')
+        : posts.filter((p) => p.category === categoryId);
+
+    if (!pool.length) {
+      return '40 teams. 70K prizes. NVIDIA H200 GPUs. NYSE stage. Pick a post and spread the word.';
+    }
+
+    return postToTeaser(pickRandom(pool).text);
+  }
+
+  let subtitle = $derived.by(() => {
+    subtitleSeed;
+    selectedCategory;
+    return pickSubtitle(selectedCategory, data.posts);
+  });
 
   function prefersReducedMotion() {
     return (
@@ -125,6 +156,7 @@
   /** @param {string} categoryId */
   function selectCategory(categoryId) {
     selectedCategory = categoryId;
+    subtitleSeed += 1;
     if (categoryId === 'default') {
       setActivePost({ text: PRESSKIT_TEXT, link: LINK, id: 'presskit' });
       return;
@@ -454,9 +486,7 @@
   <div class="presskit">
     <p class="eyebrow">Social Presskit</p>
     <h1>Share the <em>Buildathon</em></h1>
-    <p class="subtitle">
-      Pick a category to load a random post, or Default for the original presskit text.
-    </p>
+    <p class="subtitle">{subtitle}</p>
 
     <div class="share-panel">
       <div class="section">
