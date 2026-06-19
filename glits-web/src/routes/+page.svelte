@@ -402,6 +402,14 @@
     color: rgba(248, 251, 252, 0.88);
   }
 
+  .pitch {
+    margin: 2rem auto 0;
+    max-width: 540px;
+    font-size: 1.05rem;
+    line-height: 1.65;
+    color: var(--muted);
+  }
+
   .footer-note {
     margin-top: 2rem;
     font-size: 0.78rem;
@@ -455,7 +463,7 @@
     <p class="eyebrow">Social Presskit</p>
     <h1>Share the <em>Buildathon</em></h1>
     <p class="subtitle">
-      One click. Killer posts. Real builders showing up. Generate & send ready-to-post hype about the 40-team Global Agentic AI sprint — before July 3 closes.
+      From fragmented islands to global scale — help 40 teams build the agentic AI wave. July 3 deadline. Forward to your network.
     </p>
 
     <div class="share-panel">
@@ -501,6 +509,10 @@
         </div>
       </div>
     </div>
+
+    <p class="pitch">
+      One click. Killer posts. Real builders showing up. Generate & send ready-to-post hype about the 40-team Global Agentic AI sprint — before July 3 closes.
+    </p>
 
     <p class="footer-note">Future Caribbean Buildathon • 2026</p>
   </div>
