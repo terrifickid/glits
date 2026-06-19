@@ -23,6 +23,22 @@
     return `${text}\n\n${HASHTAGS}`;
   }
 
+  /** @param {Record<string, string>} params */
+  function buildQueryString(params) {
+    return Object.entries(params)
+      .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+      .join('&');
+  }
+
+  /** @param {string} host @param {string} text @param {string} link */
+  function buildFeedShareUrl(host, text, link) {
+    return `https://${host}/feed/?${buildQueryString({
+      shareActive: 'true',
+      text,
+      shareUrl: link,
+    })}`;
+  }
+
   const POST_CATEGORIES = [
     { id: 'default', label: 'Default' },
     { id: 'launch', label: 'Launch' },
@@ -104,11 +120,7 @@
         break;
       }
       case 'facebook':
-        window.open(
-          `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}&quote=${encodeURIComponent(text)}`,
-          '_blank',
-          'noopener,noreferrer',
-        );
+        window.open(buildFeedShareUrl('www.facebook.com', text, link), '_blank', 'noopener,noreferrer');
         break;
       case 'threads':
         window.open(
@@ -138,19 +150,9 @@
           'noopener,noreferrer',
         );
         break;
-      case 'linkedin': {
-        const params = new URLSearchParams({
-          shareActive: 'true',
-          text,
-          shareUrl: link,
-        });
-        window.open(
-          `https://www.linkedin.com/feed/?${params.toString()}`,
-          '_blank',
-          'noopener,noreferrer',
-        );
+      case 'linkedin':
+        window.open(buildFeedShareUrl('www.linkedin.com', text, link), '_blank', 'noopener,noreferrer');
         break;
-      }
       default:
         break;
     }
