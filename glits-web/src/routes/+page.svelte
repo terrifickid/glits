@@ -340,9 +340,11 @@
 
   .provider-btn.primary {
     grid-column: 1 / -1;
-    background: var(--pink);
-    color: white;
-    border: none;
+  }
+
+  .provider-btn.primary:hover {
+    border-color: rgba(250, 42, 129, 0.35);
+    background: rgba(250, 42, 129, 0.08);
   }
 
   .provider-btn.copy {
