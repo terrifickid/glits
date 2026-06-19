@@ -31,14 +31,6 @@
     })}`;
   }
 
-  /** @param {string} text @param {string} link */
-  function buildFacebookShareUrl(text, link) {
-    return `https://www.facebook.com/sharer/sharer.php?${buildQueryString({
-      u: link,
-      quote: text,
-    })}`;
-  }
-
   const POST_CATEGORIES = [
     { id: 'default', label: 'Default' },
     { id: 'launch', label: 'Launch' },
@@ -57,7 +49,7 @@
     { id: 'mastodon', label: 'Mastodon' },
     { id: 'threads', label: 'Threads' },
     { id: 'linkedin', label: 'LinkedIn' },
-    { id: 'facebook', label: 'Facebook' },
+    { id: 'whatsapp', label: 'WhatsApp' },
   ];
 
   let selectedCategory = 'default';
@@ -122,8 +114,12 @@
         }
         break;
       }
-      case 'facebook':
-        window.open(buildFacebookShareUrl(text, link), '_blank', 'noopener,noreferrer');
+      case 'whatsapp':
+        window.open(
+          `https://wa.me/?text=${encodeURIComponent(`${text}\n${link}`)}`,
+          '_blank',
+          'noopener,noreferrer',
+        );
         break;
       case 'threads':
         window.open(
