@@ -10,6 +10,9 @@
 </svelte:head>
 
 <script>
+  import { onDestroy } from 'svelte';
+  import { fly } from 'svelte/transition';
+
   /** @type {import('./$types').PageData} */
   export let data;
 
@@ -62,9 +65,68 @@
 
   let selectedCategory = 'default';
   let activePost = { text: PRESSKIT_TEXT, link: LINK, id: 'presskit' };
+  let displayedPostText = formatShareText(PRESSKIT_TEXT);
+  let isTyping = false;
+  let postFlashing = false;
+  /** @type {ReturnType<typeof setTimeout> | undefined} */
+  let typeTimer;
+  let typeGen = 0;
+  let postAnimKey = 0;
 
-  $: selectedCategoryLabel =
-    POST_CATEGORIES.find((c) => c.id === selectedCategory)?.label ?? 'Default';
+  /** @param {string} text */
+  function startTypewriter(text) {
+    const gen = ++typeGen;
+    clearTimeout(typeTimer);
+
+    const reduced =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (reduced) {
+      displayedPostText = text;
+      isTyping = false;
+      return;
+    }
+
+    isTyping = true;
+    displayedPostText = '';
+    let index = 0;
+    const total = text.length;
+    const msPerChar = Math.max(5, Math.min(18, Math.floor(2200 / total)));
+    const chunk = total > 200 ? 2 : 1;
+
+    const tick = () => {
+      if (gen !== typeGen) return;
+      if (index >= total) {
+        isTyping = false;
+        return;
+      }
+      index = Math.min(total, index + chunk);
+      displayedPostText = text.slice(0, index);
+      typeTimer = setTimeout(tick, msPerChar);
+    };
+
+    tick();
+  }
+
+  function flashPostTerminal() {
+    postFlashing = true;
+    setTimeout(() => {
+      postFlashing = false;
+    }, 450);
+  }
+
+  /** @param {{ text: string, link?: string, id: string }} post */
+  function setActivePost(post) {
+    activePost = post;
+    postAnimKey += 1;
+    flashPostTerminal();
+  }
+
+  $: {
+    postAnimKey;
+    startTypewriter(formatShareText(activePost.text));
+  }
 
   /** @template T @param {T[]} arr @returns {T} */
   function pickRandom(arr) {
@@ -76,18 +138,20 @@
     const pool = data.posts.filter((p) => p.category === categoryId);
     if (!pool.length) return;
     const post = pickRandom(pool);
-    activePost = { text: post.text, link: post.link || LINK, id: post.id };
+    setActivePost({ text: post.text, link: post.link || LINK, id: post.id });
   }
 
   /** @param {string} categoryId */
   function selectCategory(categoryId) {
     selectedCategory = categoryId;
     if (categoryId === 'default') {
-      activePost = { text: PRESSKIT_TEXT, link: LINK, id: 'presskit' };
+      setActivePost({ text: PRESSKIT_TEXT, link: LINK, id: 'presskit' });
       return;
     }
     pickRandomFromCategory(categoryId);
   }
+
+  onDestroy(() => clearTimeout(typeTimer));
 
   function refreshRandomPost() {
     if (selectedCategory === 'default') return;
@@ -259,6 +323,65 @@
     color: var(--muted);
   }
 
+  @keyframes reveal-in {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: 200% center;
+    }
+    100% {
+      background-position: -200% center;
+    }
+  }
+
+  @keyframes cursor-blink {
+    0%,
+    49% {
+      opacity: 1;
+    }
+    50%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes terminal-flash {
+    0% {
+      border-color: rgba(44, 219, 240, 0.55);
+      box-shadow:
+        0 0 0 1px rgba(44, 219, 240, 0.2),
+        0 0 28px rgba(44, 219, 240, 0.18);
+    }
+    100% {
+      border-color: rgba(255, 255, 255, 0.06);
+      box-shadow: none;
+    }
+  }
+
+  @keyframes scanline {
+    0% {
+      transform: translateY(-100%);
+    }
+    100% {
+      transform: translateY(100%);
+    }
+  }
+
+  .reveal {
+    opacity: 0;
+    animation: reveal-in 0.75s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation-delay: calc(var(--reveal-delay, 0) * 90ms);
+  }
+
   .share-panel {
     padding: 1.5rem;
     border: 1px solid var(--border);
@@ -268,7 +391,7 @@
     text-align: left;
   }
 
-  .presskit button {
+  .presskit button:not(.category-pill):not(.refresh-btn) {
     display: block;
     width: 100%;
     padding: 1rem 1.1rem;
@@ -283,7 +406,7 @@
     transition: filter 0.15s ease, transform 0.15s ease, background 0.15s ease;
   }
 
-  .presskit button:hover {
+  .presskit button:not(.category-pill):not(.refresh-btn):hover {
     transform: translateY(-1px);
     filter: brightness(1.08);
   }
@@ -337,16 +460,62 @@
     color: rgba(248, 251, 252, 0.45);
   }
 
-  pre {
-    margin: 0;
-    background: rgba(0, 0, 0, 0.28);
+  .post-terminal {
+    position: relative;
+    overflow: hidden;
+    border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.06);
-    padding: 1rem;
-    border-radius: 8px;
+    background:
+      linear-gradient(180deg, rgba(0, 0, 0, 0.34), rgba(6, 13, 18, 0.5)),
+      rgba(0, 0, 0, 0.28);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  }
+
+  .post-terminal.flash {
+    animation: terminal-flash 0.45s ease-out;
+  }
+
+  .post-terminal-scanline {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      transparent 0%,
+      rgba(44, 219, 240, 0.04) 48%,
+      rgba(44, 219, 240, 0.08) 50%,
+      rgba(44, 219, 240, 0.04) 52%,
+      transparent 100%
+    );
+    animation: scanline 5s linear infinite;
+    opacity: 0.7;
+  }
+
+  .post-output {
+    margin: 0;
+    padding: 1rem 1rem 1.1rem;
     white-space: pre-wrap;
     font-size: 0.9rem;
     line-height: 1.55;
-    color: rgba(248, 251, 252, 0.88);
+    color: rgba(248, 251, 252, 0.9);
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    min-height: 6.5rem;
+  }
+
+  .post-cursor {
+    display: inline-block;
+    margin-left: 1px;
+    color: var(--cyan);
+    font-weight: 700;
+    opacity: 0;
+  }
+
+  .post-cursor.blink {
+    animation: cursor-blink 0.9s step-end infinite;
+  }
+
+  .post-terminal.typing .post-output {
+    color: rgba(248, 251, 252, 0.96);
   }
 
   .small {
@@ -367,76 +536,74 @@
   .category-row {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
   }
 
   .category-controls {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.55rem;
   }
 
-  .category-select-wrap {
-    display: inline-grid;
-    align-items: center;
-  }
-
-  .category-select-wrap > .category-select,
-  .category-select-wrap > .category-select-sizer {
-    grid-area: 1 / 1;
-    width: auto;
+  .category-rail {
+    display: flex;
+    flex: 1;
     min-width: 0;
+    gap: 0.45rem;
+    overflow-x: auto;
+    padding: 0.2rem 0.1rem 0.35rem;
+    scrollbar-width: none;
+    mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
   }
 
-  .category-select-sizer {
-    visibility: hidden;
-    white-space: nowrap;
-    pointer-events: none;
-    padding: 0.45rem 2rem 0.45rem 0.9rem;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    border: 1px solid transparent;
+  .category-rail::-webkit-scrollbar {
+    display: none;
   }
 
-  .category-select {
-    display: block;
-    width: 100%;
-    margin: 0;
-    padding: 0.45rem 2rem 0.45rem 0.9rem;
+  .category-pill {
+    position: relative;
+    flex-shrink: 0;
+    padding: 0.5rem 0.95rem;
     border-radius: 999px;
-    border: 1px solid rgba(44, 219, 240, 0.45);
-    background: rgba(44, 219, 240, 0.14);
-    color: var(--cyan);
+    border: 1px solid rgba(44, 219, 240, 0.16);
+    background: rgba(10, 17, 24, 0.72);
+    color: rgba(248, 251, 252, 0.68);
     font-family: inherit;
     font-size: 0.72rem;
     font-weight: 700;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.07em;
     text-transform: uppercase;
     cursor: pointer;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%232cdbf0' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 0.75rem center;
+    margin-bottom: 0;
+    width: auto;
     transition:
-      background 0.15s ease,
-      border-color 0.15s ease,
-      color 0.15s ease,
-      transform 0.15s ease;
+      transform 0.2s ease,
+      color 0.2s ease,
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
   }
 
-  .category-select:hover,
-  .category-select:focus {
-    outline: none;
-    border-color: rgba(44, 219, 240, 0.55);
-    background-color: rgba(44, 219, 240, 0.2);
+  .category-pill:hover {
     transform: translateY(-1px);
+    color: var(--white);
+    border-color: rgba(44, 219, 240, 0.35);
   }
 
-  .category-select option {
-    background: var(--ink);
-    color: var(--white);
+  .category-pill.active {
+    color: var(--cyan);
+    border-color: rgba(44, 219, 240, 0.5);
+    background: linear-gradient(
+      110deg,
+      rgba(44, 219, 240, 0.18) 0%,
+      rgba(250, 42, 129, 0.14) 45%,
+      rgba(250, 193, 52, 0.12) 70%,
+      rgba(44, 219, 240, 0.18) 100%
+    );
+    background-size: 220% 100%;
+    animation: shimmer 4s linear infinite;
+    box-shadow:
+      0 0 0 1px rgba(44, 219, 240, 0.12),
+      0 0 18px rgba(44, 219, 240, 0.2);
   }
 
   .category-controls .refresh-btn {
@@ -466,28 +633,43 @@
     display: block;
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    .reveal {
+      opacity: 1;
+      animation: none;
+      transform: none;
+    }
+
+    .post-terminal-scanline,
+    .category-pill.active,
+    .post-cursor.blink {
+      animation: none;
+    }
+  }
+
 </style>
 
 <div class="page">
-  <header class="site-header">
+  <header class="site-header reveal" style="--reveal-delay: 0">
     <a class="logo-link" href="https://futurecaribbean.com" target="_blank" rel="noopener noreferrer">
       <img src="/fc_logo.png" alt="Future Caribbean" />
     </a>
   </header>
 
   <div class="presskit">
-    <p class="eyebrow">Social Presskit</p>
-    <h1>Share the <em>Buildathon</em></h1>
-    <p class="subtitle">
-      Choose a category from the dropdown to load a random post, or Default for the original presskit text.
+    <p class="eyebrow reveal" style="--reveal-delay: 1">Social Presskit</p>
+    <h1 class="reveal" style="--reveal-delay: 2">Share the <em>Buildathon</em></h1>
+    <p class="subtitle reveal" style="--reveal-delay: 3">
+      Pick a category to load a random post, or Default for the original presskit text.
     </p>
 
-    <div class="share-panel">
-      <span class="section-label">Share to a platform</span>
+    <div class="share-panel reveal" style="--reveal-delay: 4">
+      <span class="section-label reveal" style="--reveal-delay: 5">Share to a platform</span>
       <div class="provider-grid">
-        {#each SHARE_PROVIDERS as provider (provider.id)}
+        {#each SHARE_PROVIDERS as provider, i (provider.id)}
           <button
-            class="provider-btn"
+            class="provider-btn reveal"
+            style="--reveal-delay: {6 + i}"
             class:primary={provider.id === 'native'}
             type="button"
             on:click={() => shareToProvider(activePost, provider.id)}
@@ -495,24 +677,31 @@
             {provider.label}
           </button>
         {/each}
-        <button class="provider-btn copy" type="button" on:click={copyActivePost}>Copy post text</button>
+        <button
+          class="provider-btn copy reveal"
+          style="--reveal-delay: {6 + SHARE_PROVIDERS.length}"
+          type="button"
+          on:click={copyActivePost}
+        >
+          Copy post text
+        </button>
       </div>
 
-      <div class="section category-row">
-        <label class="section-label" for="category-select">Category</label>
-        <div class="category-controls">
-          <div class="category-select-wrap">
-            <select
-              id="category-select"
-              class="category-select"
-              bind:value={selectedCategory}
-              on:change={() => selectCategory(selectedCategory)}
-            >
-              {#each POST_CATEGORIES as category (category.id)}
-                <option value={category.id}>{category.label}</option>
-              {/each}
-            </select>
-            <span class="category-select-sizer" aria-hidden="true">{selectedCategoryLabel}</span>
+      <div class="section category-row reveal" style="--reveal-delay: {7 + SHARE_PROVIDERS.length}">
+        <span class="section-label" id="category-label">Category</span>
+        <div class="category-controls" role="group" aria-labelledby="category-label">
+          <div class="category-rail">
+            {#each POST_CATEGORIES as category (category.id)}
+              <button
+                type="button"
+                class="category-pill"
+                class:active={selectedCategory === category.id}
+                aria-pressed={selectedCategory === category.id}
+                on:click={() => selectCategory(category.id)}
+              >
+                {category.label}
+              </button>
+            {/each}
           </div>
           {#if selectedCategory !== 'default'}
             <button
@@ -521,6 +710,8 @@
               aria-label="Pick another random post from this category"
               title="Pick another post"
               on:click={refreshRandomPost}
+              in:fly={{ x: -10, duration: 220 }}
+              out:fly={{ x: -10, duration: 180 }}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -542,9 +733,18 @@
         </div>
       </div>
 
-      <div class="section">
+      <div class="section reveal" style="--reveal-delay: {8 + SHARE_PROVIDERS.length}">
         <span class="section-label">Post that gets shared</span>
-        <pre>{formatShareText(activePost.text)}</pre>
+        <div
+          class="post-terminal"
+          class:typing={isTyping}
+          class:flash={postFlashing}
+          aria-live="polite"
+        >
+          <div class="post-terminal-scanline" aria-hidden="true"></div>
+          <pre class="post-output">
+{displayedPostText}<span class="post-cursor" class:blink={isTyping}>▋</span></pre>
+        </div>
         <p class="small">
           Links to
           <a href={activePost.link || LINK} target="_blank" rel="noopener noreferrer">
@@ -554,6 +754,8 @@
       </div>
     </div>
 
-    <p class="footer-note">Future Caribbean Buildathon • 2026</p>
+    <p class="footer-note reveal" style="--reveal-delay: {9 + SHARE_PROVIDERS.length}">
+      Future Caribbean Buildathon • 2026
+    </p>
   </div>
 </div>
