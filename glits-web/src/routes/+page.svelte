@@ -56,6 +56,7 @@
 
   function selectCategory(categoryId) {
     selectedCategory = categoryId;
+    generatePost();
   }
 
   function generatePost() {
