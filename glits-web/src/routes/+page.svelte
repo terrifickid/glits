@@ -336,6 +336,7 @@
     --white: #f8fbfc;
     --muted: rgba(248, 251, 252, 0.62);
     --border: rgba(44, 219, 240, 0.12);
+    position: relative;
     min-height: 100vh;
     background:
       radial-gradient(65% 55% at 78% 12%, rgba(250, 42, 129, 0.12), transparent 60%),
@@ -345,6 +346,150 @@
       linear-gradient(180deg, var(--ink2), var(--ink));
     color: var(--white);
     font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  }
+
+  .page-content.page-shaking {
+    animation: vhs-catastrophe 0.1s steps(6) infinite;
+    will-change: transform, filter;
+  }
+
+  .sys-glitch-overlay {
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    overflow: hidden;
+  }
+
+  .sys-glitch-flash {
+    position: absolute;
+    inset: 0;
+    animation: flash-frame 0.12s steps(2) infinite;
+  }
+
+  .sys-glitch-rgb {
+    position: absolute;
+    inset: -8%;
+    mix-blend-mode: screen;
+    animation: rgb-tear 0.09s steps(3) infinite;
+    background:
+      linear-gradient(90deg, rgba(250, 42, 129, 0.55) 0%, transparent 35%),
+      linear-gradient(270deg, rgba(44, 219, 240, 0.55) 0%, transparent 35%),
+      linear-gradient(0deg, rgba(250, 193, 52, 0.35) 0%, transparent 25%);
+  }
+
+  .sys-glitch-noise {
+    position: absolute;
+    inset: -30%;
+    opacity: 0.55;
+    mix-blend-mode: overlay;
+    animation: cp-noise 0.07s steps(5) infinite;
+    background-image:
+      repeating-linear-gradient(
+        0deg,
+        rgba(255, 255, 255, 0.09) 0,
+        rgba(255, 255, 255, 0.09) 1px,
+        transparent 1px,
+        transparent 2px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        rgba(44, 219, 240, 0.07) 0,
+        rgba(44, 219, 240, 0.07) 2px,
+        transparent 2px,
+        transparent 5px
+      ),
+      repeating-linear-gradient(
+        45deg,
+        rgba(250, 42, 129, 0.05) 0,
+        rgba(250, 42, 129, 0.05) 1px,
+        transparent 1px,
+        transparent 4px
+      );
+  }
+
+  .sys-glitch-vhs {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 18%;
+    background: linear-gradient(
+      180deg,
+      transparent,
+      rgba(255, 255, 255, 0.12) 30%,
+      rgba(44, 219, 240, 0.65) 48%,
+      rgba(250, 42, 129, 0.75) 52%,
+      rgba(255, 255, 255, 0.1) 70%,
+      transparent
+    );
+    animation: vhs-tracking 0.35s linear infinite;
+    mix-blend-mode: hard-light;
+  }
+
+  .sys-glitch-vhs-2 {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 8%;
+    top: 40%;
+    background: linear-gradient(
+      180deg,
+      transparent,
+      rgba(250, 193, 52, 0.8) 45%,
+      rgba(250, 42, 129, 0.9) 55%,
+      transparent
+    );
+    animation: vhs-tracking 0.22s linear infinite reverse;
+    mix-blend-mode: color-dodge;
+  }
+
+  .sys-glitch-blocks {
+    position: absolute;
+    inset: 0;
+    animation: block-shift 0.11s steps(4) infinite;
+    background:
+      linear-gradient(90deg, transparent 8%, rgba(250, 42, 129, 0.75) 8%, rgba(250, 42, 129, 0.75) 22%, transparent 22%),
+      linear-gradient(90deg, transparent 55%, rgba(44, 219, 240, 0.7) 55%, rgba(44, 219, 240, 0.7) 68%, transparent 68%),
+      linear-gradient(90deg, transparent 78%, rgba(250, 193, 52, 0.65) 78%, rgba(250, 193, 52, 0.65) 92%, transparent 92%),
+      linear-gradient(0deg, transparent 30%, rgba(66, 231, 171, 0.5) 30%, rgba(66, 231, 171, 0.5) 38%, transparent 38%),
+      linear-gradient(0deg, transparent 72%, rgba(250, 42, 129, 0.6) 72%, rgba(250, 42, 129, 0.6) 80%, transparent 80%);
+    mix-blend-mode: screen;
+    opacity: 0.85;
+  }
+
+  .sys-glitch-interlace {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.4) 2px,
+      rgba(0, 0, 0, 0.4) 4px
+    );
+    animation: interlace-flicker 0.08s steps(2) infinite;
+  }
+
+  .sys-glitch-signal {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: clamp(1.1rem, 5vw, 2.8rem);
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-align: center;
+    color: var(--cyan);
+    text-shadow:
+      4px 0 rgba(250, 42, 129, 0.95),
+      -4px 0 rgba(44, 219, 240, 0.95),
+      0 0 30px rgba(44, 219, 240, 0.8);
+    animation: signal-flash 0.14s steps(3) infinite;
+    mix-blend-mode: screen;
   }
 
   .site-header {
@@ -525,22 +670,198 @@
       transform: translate(0);
     }
     15% {
-      transform: translate(-4px, 2px) skewX(-2deg);
+      transform: translate(-8px, 4px) skewX(-4deg);
     }
     30% {
-      transform: translate(5px, -1px) skewX(1.5deg);
+      transform: translate(12px, -6px) skewX(3deg);
     }
     45% {
-      transform: translate(-2px, -3px);
+      transform: translate(-6px, -8px) skewX(-2deg);
     }
     60% {
-      transform: translate(3px, 1px) skewX(-1deg);
+      transform: translate(9px, 3px) skewX(2deg);
     }
     75% {
-      transform: translate(-5px, 0);
+      transform: translate(-14px, 2px);
     }
     100% {
       transform: translate(0);
+    }
+  }
+
+  @keyframes vhs-catastrophe {
+    0% {
+      transform: translate(0) skewX(0deg) scale(1);
+      filter: hue-rotate(0deg) contrast(1) saturate(1);
+    }
+    8% {
+      transform: translate(-18px, 6px) skewX(-4deg) scale(1.02);
+      filter: hue-rotate(70deg) contrast(2.2) saturate(2.5) invert(0.08);
+    }
+    16% {
+      transform: translate(22px, -10px) skewX(3deg) scale(0.98);
+      filter: hue-rotate(-50deg) contrast(1.6) saturate(3);
+    }
+    24% {
+      transform: translate(-10px, 14px) skewX(-6deg);
+      filter: hue-rotate(120deg) contrast(2.8) invert(0.15);
+    }
+    32% {
+      transform: translate(16px, -4px) skewX(2deg) scale(1.03);
+      filter: hue-rotate(-90deg) contrast(1.4) saturate(2);
+    }
+    48% {
+      transform: translate(-24px, -8px) skewX(-3deg);
+      filter: hue-rotate(40deg) contrast(2.5) invert(0.05);
+    }
+    64% {
+      transform: translate(8px, 12px) skewX(5deg) scale(0.97);
+      filter: hue-rotate(-120deg) contrast(3) saturate(2.8);
+    }
+    80% {
+      transform: translate(-14px, 2px) skewX(-2deg);
+      filter: hue-rotate(200deg) contrast(1.8);
+    }
+    100% {
+      transform: translate(0) skewX(0deg) scale(1);
+      filter: none;
+    }
+  }
+
+  @keyframes rgb-tear {
+    0% {
+      transform: translate(0);
+      opacity: 0.5;
+    }
+    20% {
+      transform: translate(-18px, 4px) scaleX(1.04);
+      opacity: 0.95;
+    }
+    40% {
+      transform: translate(24px, -8px) scaleX(0.96);
+      opacity: 0.7;
+    }
+    60% {
+      transform: translate(-12px, 10px);
+      opacity: 1;
+    }
+    80% {
+      transform: translate(16px, -4px) scaleY(1.03);
+      opacity: 0.8;
+    }
+    100% {
+      transform: translate(0);
+      opacity: 0.5;
+    }
+  }
+
+  @keyframes vhs-tracking {
+    0% {
+      transform: translateY(-100%);
+    }
+    100% {
+      transform: translateY(100vh);
+    }
+  }
+
+  @keyframes signal-flash {
+    0%,
+    100% {
+      opacity: 0;
+      transform: scale(0.9) skewX(0deg);
+    }
+    12% {
+      opacity: 1;
+      transform: scale(1.08) skewX(-8deg) translateX(-20px);
+    }
+    25% {
+      opacity: 0.3;
+      transform: scale(1) skewX(6deg) translateX(30px);
+    }
+    40% {
+      opacity: 0.95;
+      transform: scale(1.12) skewX(-4deg);
+    }
+    55% {
+      opacity: 0;
+    }
+    70% {
+      opacity: 0.85;
+      transform: scale(1.05) skewX(10deg) translateX(-40px);
+    }
+  }
+
+  @keyframes block-shift {
+    0% {
+      clip-path: inset(0 0 0 0);
+      transform: translateX(0);
+    }
+    15% {
+      clip-path: inset(12% 0 58% 0);
+      transform: translateX(-30px);
+    }
+    30% {
+      clip-path: inset(65% 0 8% 0);
+      transform: translateX(40px);
+    }
+    45% {
+      clip-path: inset(35% 0 40% 0);
+      transform: translateX(-20px);
+    }
+    60% {
+      clip-path: inset(78% 0 5% 0);
+      transform: translateX(50px);
+    }
+    75% {
+      clip-path: inset(5% 0 75% 0);
+      transform: translateX(-35px);
+    }
+    100% {
+      clip-path: inset(0 0 0 0);
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes flash-frame {
+    0%,
+    88%,
+    100% {
+      opacity: 0;
+    }
+    8% {
+      opacity: 0.85;
+      background: rgba(250, 42, 129, 0.55);
+    }
+    16% {
+      opacity: 0;
+    }
+    24% {
+      opacity: 0.7;
+      background: rgba(44, 219, 240, 0.5);
+    }
+    32% {
+      opacity: 0;
+    }
+    48% {
+      opacity: 0.9;
+      background: rgba(250, 193, 52, 0.45);
+    }
+    56% {
+      opacity: 0;
+    }
+    72% {
+      opacity: 0.75;
+      background: rgba(66, 231, 171, 0.4);
+    }
+  }
+
+  @keyframes interlace-flicker {
+    0%,
+    100% {
+      opacity: 0.08;
+    }
+    50% {
+      opacity: 0.35;
     }
   }
 
@@ -684,13 +1005,17 @@
   }
 
   .post-terminal.glitching {
-    animation: cp-terminal-flicker 0.12s steps(2) 6;
-    border-color: rgba(250, 42, 129, 0.75);
+    animation: cp-terminal-flicker 0.08s steps(2) 10;
+    border-color: rgba(250, 42, 129, 0.9);
     box-shadow:
-      0 0 0 1px rgba(44, 219, 240, 0.35),
-      0 0 24px rgba(250, 42, 129, 0.45),
-      0 0 48px rgba(44, 219, 240, 0.2),
-      inset 0 0 40px rgba(250, 42, 129, 0.06);
+      0 0 0 2px rgba(44, 219, 240, 0.5),
+      0 0 40px rgba(250, 42, 129, 0.7),
+      0 0 80px rgba(44, 219, 240, 0.35),
+      inset 0 0 60px rgba(250, 42, 129, 0.12);
+  }
+
+  .post-terminal.glitching-major {
+    animation: cp-terminal-flicker 0.06s steps(2) 14, cp-glitch-shake 0.12s steps(5) infinite;
   }
 
   .post-terminal-scanline {
@@ -734,7 +1059,8 @@
   }
 
   .post-terminal.glitching .post-glitch-noise {
-    animation: cp-noise 0.18s steps(3) infinite;
+    opacity: 1;
+    animation: cp-noise 0.1s steps(4) infinite;
   }
 
   .post-glitch-bars {
@@ -821,10 +1147,19 @@
   }
 
   .post-terminal.glitching .post-output {
-    animation: cp-slice 0.32s steps(4) 1;
+    animation: cp-slice 0.18s steps(5) infinite;
     text-shadow:
-      2px 0 rgba(44, 219, 240, 0.8),
-      -2px 0 rgba(250, 42, 129, 0.8);
+      4px 0 rgba(44, 219, 240, 1),
+      -4px 0 rgba(250, 42, 129, 1),
+      0 0 12px rgba(250, 193, 52, 0.6);
+  }
+
+  .post-terminal.glitching-major .post-output {
+    text-shadow:
+      6px 0 rgba(44, 219, 240, 1),
+      -6px 0 rgba(250, 42, 129, 1),
+      3px 3px rgba(250, 193, 52, 0.8),
+      -3px -3px rgba(66, 231, 171, 0.7);
   }
 
   .small {
@@ -881,14 +1216,35 @@
     .post-terminal.glitching .post-output,
     .post-terminal.glitching .post-output-stack,
     .post-terminal.glitching .post-glitch-noise,
-    .post-terminal.glitching .post-glitch-bars {
+    .post-terminal.glitching .post-glitch-bars,
+    .page-content.page-shaking,
+    .sys-glitch-overlay,
+    .sys-glitch-overlay * {
       animation: none;
+    }
+
+    .sys-glitch-overlay {
+      display: none;
     }
   }
 
 </style>
 
 <div class="page">
+  {#if isPageGlitching}
+    <div class="sys-glitch-overlay" aria-hidden="true">
+      <div class="sys-glitch-flash"></div>
+      <div class="sys-glitch-rgb"></div>
+      <div class="sys-glitch-noise"></div>
+      <div class="sys-glitch-blocks"></div>
+      <div class="sys-glitch-interlace"></div>
+      <div class="sys-glitch-vhs"></div>
+      <div class="sys-glitch-vhs-2"></div>
+      <div class="sys-glitch-signal">{glitchSignalText}</div>
+    </div>
+  {/if}
+
+  <div class="page-content" class:page-shaking={isPageGlitching}>
   <header class="site-header">
     <a class="logo-link" href="https://futurecaribbean.com" target="_blank" rel="noopener noreferrer">
       <img src="/fc_logo.png" alt="Future Caribbean" />
@@ -942,6 +1298,7 @@
           class:typing={isTyping}
           class:flash={postFlashing}
           class:glitching={isGlitching}
+          class:glitching-major={isGlitching && glitchSeverity === 'major'}
           aria-live="polite"
         >
           <div class="post-terminal-scanline" aria-hidden="true"></div>
@@ -968,5 +1325,6 @@
     </div>
 
     <p class="footer-note">Future Caribbean Buildathon • 2026</p>
+  </div>
   </div>
 </div>
