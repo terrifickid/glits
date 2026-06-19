@@ -402,13 +402,6 @@
     color: rgba(248, 251, 252, 0.88);
   }
 
-  .small {
-    margin: 0.85rem 0 0;
-    font-size: 0.82rem;
-    color: rgba(248, 251, 252, 0.42);
-    text-align: center;
-  }
-
   .footer-note {
     margin-top: 2rem;
     font-size: 0.78rem;
@@ -487,12 +480,6 @@
           <pre class="post-sizer" aria-hidden="true">{fullPostText}</pre>
           <pre class="post-typed" aria-live="polite">{displayedPostText}</pre>
         </div>
-        <p class="small">
-          Links to
-          <a href={activePost.link || LINK} target="_blank" rel="noopener noreferrer">
-            {activePost.link || LINK}
-          </a>
-        </p>
       </div>
 
       <div class="section">
