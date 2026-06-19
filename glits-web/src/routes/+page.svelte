@@ -218,18 +218,19 @@
 </svelte:head>
 
 <div class="page">
-  <header class="site-header">
-    <a
-      class="logo-link"
-      href="https://futurecaribbean.com"
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      <img src="/fc_logo.png" alt="Future Caribbean" />
-    </a>
-  </header>
+  <div class="page-content">
+    <header class="site-header">
+      <a
+        class="logo-link"
+        href="https://futurecaribbean.com"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <img src="/fc_logo.png" alt="Future Caribbean" />
+      </a>
+    </header>
 
-  <div class="presskit">
+    <div class="presskit">
     <p class="eyebrow">Social Presskit</p>
     <h1>Share the <em>Buildathon</em></h1>
     <p class="subtitle">
@@ -294,6 +295,7 @@
     </p>
 
     <p class="footer-note">Future Caribbean Buildathon • 2026</p>
+    </div>
   </div>
 </div>
 
@@ -336,9 +338,13 @@
     font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
   }
 
+  .page-content {
+    width: 100%;
+  }
+
   @media (min-width: 768px) {
-    .page {
-      justify-content: safe center;
+    .page-content {
+      margin-block: auto;
     }
   }
 
