@@ -34,8 +34,6 @@
     { id: 'ecosystem', label: 'Ecosystem' },
   ];
 
-  const REAL_CATEGORIES = POST_CATEGORIES.filter((c) => c.id !== 'default');
-
   const SHARE_PROVIDERS = [
     { id: 'native', label: 'Device share sheet' },
     { id: 'bluesky', label: 'Bluesky' },
@@ -56,16 +54,11 @@
 
   function selectCategory(categoryId) {
     selectedCategory = categoryId;
-    generatePost();
-  }
-
-  function generatePost() {
-    let category = selectedCategory;
-    if (category === 'default') {
-      category = pickRandom(REAL_CATEGORIES).id;
-      selectedCategory = category;
+    if (categoryId === 'default') {
+      activePost = { text: PRESSKIT_TEXT, link: LINK, id: 'presskit' };
+      return;
     }
-    const pool = data.posts.filter((p) => p.category === category);
+    const pool = data.posts.filter((p) => p.category === categoryId);
     if (!pool.length) return;
     const post = pickRandom(pool);
     activePost = { text: post.text, link: post.link || LINK, id: post.id };
@@ -380,16 +373,6 @@
     color: var(--cyan);
   }
 
-  .generate-btn {
-    margin-bottom: 0;
-    background: var(--cyan);
-    color: var(--ink);
-    border: none;
-  }
-
-  .generate-btn:hover {
-    filter: brightness(1.1);
-  }
 </style>
 
 <div class="page">
@@ -403,7 +386,7 @@
     <p class="eyebrow">Social Presskit</p>
     <h1>Share the <em>Buildathon</em></h1>
     <p class="subtitle">
-      Pick a category or leave Default for a surprise, hit Generate, then share to any platform.
+      Pick a category to load a random post, or Default for the original presskit text.
     </p>
 
     <div class="share-panel">
@@ -447,7 +430,6 @@
             </button>
           {/each}
         </div>
-        <button class="generate-btn" type="button" on:click={generatePost}>Generate</button>
       </div>
     </div>
 
