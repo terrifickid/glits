@@ -62,6 +62,9 @@
 
   let selectedCategory = 'default';
   let activePost = { text: PRESSKIT_TEXT, link: LINK, id: 'presskit' };
+
+  $: selectedCategoryLabel =
+    POST_CATEGORIES.find((c) => c.id === selectedCategory)?.label ?? 'Default';
   let displayedPostText = formatShareText(PRESSKIT_TEXT);
   let isTyping = false;
   let postFlashing = false;
@@ -387,7 +390,7 @@
     text-align: left;
   }
 
-  .presskit button:not(.category-pill):not(.refresh-btn) {
+  .presskit button:not(.refresh-btn) {
     display: block;
     width: 100%;
     padding: 1rem 1.1rem;
@@ -402,7 +405,7 @@
     transition: filter 0.15s ease, transform 0.15s ease, background 0.15s ease;
   }
 
-  .presskit button:not(.category-pill):not(.refresh-btn):hover {
+  .presskit button:not(.refresh-btn):hover {
     transform: translateY(-1px);
     filter: brightness(1.08);
   }
@@ -532,74 +535,97 @@
   .category-row {
     display: flex;
     flex-direction: column;
-    align-items: stretch;
+    align-items: flex-start;
   }
 
   .category-controls {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 0.55rem;
   }
 
-  .category-rail {
-    display: flex;
-    flex: 1;
+  .category-select-wrap {
+    display: inline-grid;
+    align-items: center;
+  }
+
+  .category-select-wrap > .category-select,
+  .category-select-wrap > .category-select-sizer {
+    grid-area: 1 / 1;
+    width: auto;
     min-width: 0;
-    gap: 0.45rem;
-    overflow-x: auto;
-    padding: 0.2rem 0.1rem 0.35rem;
-    scrollbar-width: none;
-    mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
   }
 
-  .category-rail::-webkit-scrollbar {
-    display: none;
+  .category-select-sizer {
+    visibility: hidden;
+    white-space: nowrap;
+    pointer-events: none;
+    padding: 0.5rem 2.1rem 0.5rem 0.95rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    border: 1px solid transparent;
   }
 
-  .category-pill {
-    position: relative;
-    flex-shrink: 0;
-    padding: 0.5rem 0.95rem;
+  .category-select {
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 0.5rem 2.1rem 0.5rem 0.95rem;
     border-radius: 999px;
-    border: 1px solid rgba(44, 219, 240, 0.16);
-    background: rgba(10, 17, 24, 0.72);
-    color: rgba(248, 251, 252, 0.68);
+    border: 1px solid rgba(44, 219, 240, 0.5);
+    color: var(--cyan);
     font-family: inherit;
     font-size: 0.72rem;
     font-weight: 700;
     letter-spacing: 0.07em;
     text-transform: uppercase;
     cursor: pointer;
-    margin-bottom: 0;
-    width: auto;
-    transition:
-      transform 0.2s ease,
-      color 0.2s ease,
-      border-color 0.2s ease,
-      box-shadow 0.2s ease;
-  }
-
-  .category-pill:hover {
-    transform: translateY(-1px);
-    color: var(--white);
-    border-color: rgba(44, 219, 240, 0.35);
-  }
-
-  .category-pill.active {
-    color: var(--cyan);
-    border-color: rgba(44, 219, 240, 0.5);
-    background: linear-gradient(
-      110deg,
-      rgba(44, 219, 240, 0.18) 0%,
-      rgba(250, 42, 129, 0.14) 45%,
-      rgba(250, 193, 52, 0.12) 70%,
-      rgba(44, 219, 240, 0.18) 100%
-    );
-    background-size: 220% 100%;
+    appearance: none;
+    background-color: rgba(44, 219, 240, 0.12);
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%232cdbf0' d='M6 8L1 3h10z'/%3E%3C/svg%3E"),
+      linear-gradient(
+        110deg,
+        rgba(44, 219, 240, 0.18) 0%,
+        rgba(250, 42, 129, 0.14) 45%,
+        rgba(250, 193, 52, 0.12) 70%,
+        rgba(44, 219, 240, 0.18) 100%
+      );
+    background-repeat: no-repeat, no-repeat;
+    background-position:
+      right 0.8rem center,
+      center;
+    background-size:
+      12px 12px,
+      220% 100%;
     animation: shimmer 4s linear infinite;
     box-shadow:
       0 0 0 1px rgba(44, 219, 240, 0.12),
       0 0 18px rgba(44, 219, 240, 0.2);
+    transition:
+      transform 0.2s ease,
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+
+  .category-select:hover,
+  .category-select:focus {
+    outline: none;
+    transform: translateY(-1px);
+    border-color: rgba(44, 219, 240, 0.65);
+    box-shadow:
+      0 0 0 1px rgba(44, 219, 240, 0.2),
+      0 0 22px rgba(44, 219, 240, 0.28);
+  }
+
+  .category-select option {
+    background: var(--ink);
+    color: var(--white);
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 500;
   }
 
   .category-controls .refresh-btn {
@@ -637,7 +663,7 @@
     }
 
     .post-terminal-scanline,
-    .category-pill.active,
+    .category-select,
     .post-cursor.blink {
       animation: none;
     }
@@ -685,19 +711,20 @@
 
       <div class="section category-row reveal" style="--reveal-delay: {7 + SHARE_PROVIDERS.length}">
         <span class="section-label" id="category-label">Category</span>
-        <div class="category-controls" role="group" aria-labelledby="category-label">
-          <div class="category-rail">
-            {#each POST_CATEGORIES as category (category.id)}
-              <button
-                type="button"
-                class="category-pill"
-                class:active={selectedCategory === category.id}
-                aria-pressed={selectedCategory === category.id}
-                on:click={() => selectCategory(category.id)}
-              >
-                {category.label}
-              </button>
-            {/each}
+        <div class="category-controls">
+          <div class="category-select-wrap">
+            <select
+              id="category-select"
+              class="category-select"
+              bind:value={selectedCategory}
+              on:change={() => selectCategory(selectedCategory)}
+              aria-labelledby="category-label"
+            >
+              {#each POST_CATEGORIES as category (category.id)}
+                <option value={category.id}>{category.label}</option>
+              {/each}
+            </select>
+            <span class="category-select-sizer" aria-hidden="true">{selectedCategoryLabel}</span>
           </div>
           {#if selectedCategory !== 'default'}
             <button
