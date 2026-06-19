@@ -455,7 +455,7 @@
     <p class="eyebrow">Social Presskit</p>
     <h1>Share the <em>Buildathon</em></h1>
     <p class="subtitle">
-      From fragmented islands to global scale — help 40 teams build the agentic AI wave. July 3 deadline. Forward to your network.
+      One click. Killer posts. Real builders showing up. Generate & send ready-to-post hype about the 40-team Global Agentic AI sprint — before July 3 closes.
     </p>
 
     <div class="share-panel">
