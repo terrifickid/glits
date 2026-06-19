@@ -1,17 +1,6 @@
-<svelte:head>
-  <title>Future Caribbean • Social Presskit</title>
-  <meta name="theme-color" content="#0A1118" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap"
-    rel="stylesheet"
-  />
-</svelte:head>
-
 <script>
-  import { onDestroy } from 'svelte';
-  import { formatShareText, LINK, PRESSKIT_TEXT } from '$lib/presskit.js';
+  import { onDestroy } from "svelte";
+  import { formatShareText, LINK, PRESSKIT_TEXT } from "$lib/presskit.js";
 
   /** @type {import('./$types').PageData} */
   let { data } = $props();
@@ -19,42 +8,45 @@
   /** @param {Record<string, string>} params */
   function buildQueryString(params) {
     return Object.entries(params)
-      .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-      .join('&');
+      .map(
+        ([key, value]) =>
+          `${encodeURIComponent(key)}=${encodeURIComponent(value)}`,
+      )
+      .join("&");
   }
 
   /** @param {string} text @param {string} link */
   function buildLinkedInShareUrl(text, link) {
     return `https://www.linkedin.com/feed/?${buildQueryString({
-      shareActive: 'true',
+      shareActive: "true",
       text,
       shareUrl: link,
     })}`;
   }
 
   const POST_CATEGORIES = [
-    { id: 'default', label: 'Default' },
-    { id: 'launch', label: 'Launch' },
-    { id: 'build', label: 'Build' },
-    { id: 'prizes', label: 'Prizes' },
-    { id: 'tracks', label: 'Tracks' },
-    { id: 'quotes', label: 'Quotes' },
-    { id: 'timeline', label: 'Timeline' },
-    { id: 'ecosystem', label: 'Ecosystem' },
+    { id: "default", label: "Default" },
+    { id: "launch", label: "Launch" },
+    { id: "build", label: "Build" },
+    { id: "prizes", label: "Prizes" },
+    { id: "tracks", label: "Tracks" },
+    { id: "quotes", label: "Quotes" },
+    { id: "timeline", label: "Timeline" },
+    { id: "ecosystem", label: "Ecosystem" },
   ];
 
   const SHARE_PROVIDERS = [
-    { id: 'native', label: 'Device share sheet' },
-    { id: 'bluesky', label: 'Bluesky' },
-    { id: 'x', label: 'X' },
-    { id: 'mastodon', label: 'Mastodon' },
-    { id: 'threads', label: 'Threads' },
-    { id: 'linkedin', label: 'LinkedIn' },
-    { id: 'whatsapp', label: 'WhatsApp' },
+    { id: "native", label: "Device share sheet" },
+    { id: "bluesky", label: "Bluesky" },
+    { id: "x", label: "X" },
+    { id: "mastodon", label: "Mastodon" },
+    { id: "threads", label: "Threads" },
+    { id: "linkedin", label: "LinkedIn" },
+    { id: "whatsapp", label: "WhatsApp" },
   ];
 
-  let selectedCategory = $state('default');
-  let activePost = $state({ text: PRESSKIT_TEXT, link: LINK, id: 'presskit' });
+  let selectedCategory = $state("default");
+  let activePost = $state({ text: PRESSKIT_TEXT, link: LINK, id: "presskit" });
   let displayedPostText = $state(formatShareText(PRESSKIT_TEXT));
   let fullPostText = $derived(formatShareText(activePost.text));
   /** @type {ReturnType<typeof setTimeout> | undefined} */
@@ -64,8 +56,8 @@
 
   function prefersReducedMotion() {
     return (
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
     );
   }
 
@@ -79,7 +71,7 @@
       return;
     }
 
-    displayedPostText = '';
+    displayedPostText = "";
     let index = 0;
     const total = text.length;
     const msPerChar = Math.max(12, Math.min(32, Math.floor(3800 / total)));
@@ -125,8 +117,8 @@
   /** @param {string} categoryId */
   function selectCategory(categoryId) {
     selectedCategory = categoryId;
-    if (categoryId === 'default') {
-      setActivePost({ text: PRESSKIT_TEXT, link: LINK, id: 'presskit' });
+    if (categoryId === "default") {
+      setActivePost({ text: PRESSKIT_TEXT, link: LINK, id: "presskit" });
       return;
     }
     pickRandomFromCategory(categoryId);
@@ -136,7 +128,7 @@
 
   async function copyActivePost() {
     await navigator.clipboard.writeText(formatShareText(activePost.text));
-    alert('Post copied to clipboard.');
+    alert("Post copied to clipboard.");
   }
 
   /**
@@ -148,64 +140,162 @@
     const link = post.link || LINK;
 
     switch (providerId) {
-      case 'native': {
-        const shareData = { title: 'Future Caribbean', text, url: link };
+      case "native": {
+        const shareData = { title: "Future Caribbean", text, url: link };
         try {
           if (navigator.share) {
             await navigator.share(shareData);
           } else {
             await navigator.clipboard.writeText(text);
-            alert('Post text copied to clipboard.');
+            alert("Post text copied to clipboard.");
           }
         } catch {
           /* user cancelled */
         }
         break;
       }
-      case 'whatsapp':
+      case "whatsapp":
         window.open(
           `https://wa.me/?text=${encodeURIComponent(`${text}\n${link}`)}`,
-          '_blank',
-          'noopener,noreferrer',
+          "_blank",
+          "noopener,noreferrer",
         );
         break;
-      case 'threads':
+      case "threads":
         window.open(
           `https://www.threads.net/intent/post?text=${encodeURIComponent(text)}`,
-          '_blank',
-          'noopener,noreferrer',
+          "_blank",
+          "noopener,noreferrer",
         );
         break;
-      case 'x':
+      case "x":
         window.open(
           `https://x.com/intent/tweet?text=${encodeURIComponent(text)}`,
-          '_blank',
-          'noopener,noreferrer',
+          "_blank",
+          "noopener,noreferrer",
         );
         break;
-      case 'bluesky':
+      case "bluesky":
         window.open(
           `https://bsky.app/intent/compose?text=${encodeURIComponent(text)}`,
-          '_blank',
-          'noopener,noreferrer',
+          "_blank",
+          "noopener,noreferrer",
         );
         break;
-      case 'mastodon':
+      case "mastodon":
         window.open(
           `https://mastodon.social/share?text=${encodeURIComponent(text)}`,
-          '_blank',
-          'noopener,noreferrer',
+          "_blank",
+          "noopener,noreferrer",
         );
         break;
-      case 'linkedin':
-        window.open(buildLinkedInShareUrl(text, link), '_blank', 'noopener,noreferrer');
+      case "linkedin":
+        window.open(
+          buildLinkedInShareUrl(text, link),
+          "_blank",
+          "noopener,noreferrer",
+        );
         break;
       default:
         break;
     }
   }
-
 </script>
+
+<svelte:head>
+  <title>Future Caribbean • Social Presskit</title>
+  <meta name="theme-color" content="#0A1118" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin="anonymous"
+  />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap"
+    rel="stylesheet"
+  />
+</svelte:head>
+
+<div class="page">
+  <header class="site-header">
+    <a
+      class="logo-link"
+      href="https://futurecaribbean.com"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <img src="/fc_logo.png" alt="Future Caribbean" />
+    </a>
+  </header>
+
+  <div class="presskit">
+    <p class="eyebrow">Social Presskit</p>
+    <h1>Share the <em>Buildathon</em></h1>
+    <p class="subtitle">
+      Generate & send ready-to-post media about the 40-team Global Agentic AI
+      sprint — before July 3 closes.
+    </p>
+
+    <div
+      class="share-panel"
+      style="box-shadow: 0px 0px 40px 0px rgba(0, 0, 0, 0.21)"
+    >
+      <div class="section">
+        <span class="section-label" id="category-label">Category</span>
+        <select
+          id="category-select"
+          class="category-select"
+          value={selectedCategory}
+          onchange={(e) => selectCategory(e.currentTarget.value)}
+          aria-labelledby="category-label"
+        >
+          {#each POST_CATEGORIES as category (category.id)}
+            <option value={category.id}>{category.label}</option>
+          {/each}
+        </select>
+      </div>
+
+      <div class="section">
+        <span class="section-label">Post that gets shared</span>
+        <div class="post-box">
+          <pre class="post-sizer" aria-hidden="true">{fullPostText}</pre>
+          <pre class="post-typed" aria-live="polite">{displayedPostText}</pre>
+        </div>
+      </div>
+
+      <div class="section">
+        <span class="section-label">Share to a platform</span>
+        <div class="provider-grid">
+          {#each SHARE_PROVIDERS as provider (provider.id)}
+            <button
+              class="provider-btn"
+              class:primary={provider.id === "native"}
+              type="button"
+              onclick={() => shareToProvider(activePost, provider.id)}
+            >
+              {provider.label}
+            </button>
+          {/each}
+          <button
+            class="provider-btn copy"
+            type="button"
+            onclick={copyActivePost}
+          >
+            Copy post text
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <p class="pitch">
+      From fragmented islands to global scale — help 40 teams build the agentic
+      AI wave. July 3 deadline. Forward to your network.
+    </p>
+
+    <p class="footer-note">Future Caribbean Buildathon • 2026</p>
+  </div>
+</div>
 
 <style>
   .page {
@@ -219,14 +309,29 @@
     --muted: rgba(248, 251, 252, 0.62);
     --border: rgba(44, 219, 240, 0.12);
     min-height: 100vh;
-    background:
-      radial-gradient(65% 55% at 78% 12%, rgba(250, 42, 129, 0.12), transparent 60%),
-      radial-gradient(55% 50% at 18% 28%, rgba(44, 219, 240, 0.1), transparent 58%),
-      radial-gradient(40% 40% at 88% 72%, rgba(66, 231, 171, 0.07), transparent 55%),
-      radial-gradient(50% 60% at 40% 8%, rgba(250, 193, 52, 0.08), transparent 55%),
+    background: radial-gradient(
+        65% 55% at 78% 12%,
+        rgba(250, 42, 129, 0.12),
+        transparent 60%
+      ),
+      radial-gradient(
+        55% 50% at 18% 28%,
+        rgba(44, 219, 240, 0.1),
+        transparent 58%
+      ),
+      radial-gradient(
+        40% 40% at 88% 72%,
+        rgba(66, 231, 171, 0.07),
+        transparent 55%
+      ),
+      radial-gradient(
+        50% 60% at 40% 8%,
+        rgba(250, 193, 52, 0.08),
+        transparent 55%
+      ),
       linear-gradient(180deg, var(--ink2), var(--ink));
     color: var(--white);
-    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
   }
 
   .site-header {
@@ -238,7 +343,9 @@
   .logo-link {
     display: inline-flex;
     text-decoration: none;
-    transition: transform 0.15s ease, filter 0.15s ease;
+    transition:
+      transform 0.15s ease,
+      filter 0.15s ease;
   }
 
   .logo-link:hover {
@@ -277,7 +384,7 @@
   }
 
   h1 em {
-    font-family: 'Instrument Serif', Georgia, serif;
+    font-family: "Instrument Serif", Georgia, serif;
     font-style: italic;
     font-weight: 400;
     color: var(--gold);
@@ -312,7 +419,10 @@
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    transition: filter 0.15s ease, transform 0.15s ease, background 0.15s ease;
+    transition:
+      filter 0.15s ease,
+      transform 0.15s ease,
+      background 0.15s ease;
   }
 
   .presskit button:hover {
@@ -435,7 +545,9 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23f8fbfc' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.85rem center;
-    transition: border-color 0.15s ease, background-color 0.15s ease;
+    transition:
+      border-color 0.15s ease,
+      background-color 0.15s ease;
   }
 
   .category-select:hover,
@@ -449,71 +561,4 @@
     background: var(--ink);
     color: var(--white);
   }
-
 </style>
-
-<div class="page">
-  <header class="site-header">
-    <a class="logo-link" href="https://futurecaribbean.com" target="_blank" rel="noopener noreferrer">
-      <img src="/fc_logo.png" alt="Future Caribbean" />
-    </a>
-  </header>
-
-  <div class="presskit">
-    <p class="eyebrow">Social Presskit</p>
-    <h1>Share the <em>Buildathon</em></h1>
-    <p class="subtitle">
-      One click. Real builders showing up. Generate & send ready-to-post media about the 40-team Global Agentic AI sprint — before July 3 closes.
-    </p>
-
-    <div class="share-panel">
-      <div class="section">
-        <span class="section-label" id="category-label">Category</span>
-        <select
-          id="category-select"
-          class="category-select"
-          value={selectedCategory}
-          onchange={(e) => selectCategory(e.currentTarget.value)}
-          aria-labelledby="category-label"
-        >
-          {#each POST_CATEGORIES as category (category.id)}
-            <option value={category.id}>{category.label}</option>
-          {/each}
-        </select>
-      </div>
-
-      <div class="section">
-        <span class="section-label">Post that gets shared</span>
-        <div class="post-box">
-          <pre class="post-sizer" aria-hidden="true">{fullPostText}</pre>
-          <pre class="post-typed" aria-live="polite">{displayedPostText}</pre>
-        </div>
-      </div>
-
-      <div class="section">
-        <span class="section-label">Share to a platform</span>
-        <div class="provider-grid">
-          {#each SHARE_PROVIDERS as provider (provider.id)}
-            <button
-              class="provider-btn"
-              class:primary={provider.id === 'native'}
-              type="button"
-              onclick={() => shareToProvider(activePost, provider.id)}
-            >
-              {provider.label}
-            </button>
-          {/each}
-          <button class="provider-btn copy" type="button" onclick={copyActivePost}>
-            Copy post text
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <p class="pitch">
-      From fragmented islands to global scale — help 40 teams build the agentic AI wave. July 3 deadline. Forward to your network.
-    </p>
-
-    <p class="footer-note">Future Caribbean Buildathon • 2026</p>
-  </div>
-</div>
