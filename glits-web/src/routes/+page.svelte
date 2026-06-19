@@ -345,21 +345,14 @@
 
   .category-row {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.75rem;
-  }
-
-  .category-row .section-label {
-    margin-bottom: 0;
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .category-controls {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    flex: 1;
-    min-width: min(100%, 12rem);
   }
 
   .category-select {
