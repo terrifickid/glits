@@ -338,14 +338,19 @@
     color: rgba(248, 251, 252, 0.35);
   }
 
+  .category-section {
+    text-align: center;
+  }
+
   .category-filters {
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     gap: 0.5rem;
-    margin: 0 0 0.85rem;
+    margin: 0 auto 1.25rem;
   }
 
-  .category-pill {
+  .category-filters .category-pill {
     display: inline-block;
     width: auto;
     margin-bottom: 0;
@@ -427,9 +432,8 @@
         </p>
       </div>
 
-      <div class="section">
-        <span class="section-label">Category</span>
-        <div class="category-filters" role="toolbar" aria-label="Select post category">
+      <div class="section category-section">
+        <div class="category-filters" role="toolbar" aria-label="Filter posts by category">
           {#each POST_CATEGORIES as category (category.id)}
             <button
               class="category-pill"
