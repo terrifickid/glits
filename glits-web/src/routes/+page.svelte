@@ -16,7 +16,14 @@
   const LINK = 'https://futurecaribbean.com';
   const PRESSKIT_TEXT =
     '🌴 Build intelligence that moves the real world. Future Caribbean is a global Agentic AI buildathon — 40 teams, 10 tracks, $70K prizes, NVIDIA H200 compute, and a live pitch at the NYSE. Applications close July 3 → futurecaribbean.com';
+  const HASHTAGS =
+    '#FutureCaribbean #AgenticAI #Buildathon #Caribbean #OpenSource #AI #Innovation';
   const PRESSKIT_POST = { text: PRESSKIT_TEXT, link: LINK };
+
+  /** @param {string} text */
+  function formatShareText(text) {
+    return `${text}\n\n${HASHTAGS}`;
+  }
 
   const POST_CATEGORIES = [
     { id: 'launch', label: 'Launch' },
@@ -34,11 +41,8 @@
     { id: 'x', label: 'X' },
     { id: 'mastodon', label: 'Mastodon' },
     { id: 'threads', label: 'Threads' },
-    { id: 'instagram', label: 'Instagram' },
     { id: 'linkedin', label: 'LinkedIn' },
-    { id: 'youtube', label: 'YouTube' },
     { id: 'facebook', label: 'Facebook' },
-    { id: 'nostr', label: 'Nostr' },
   ];
 
   let openShareId = null;
@@ -69,7 +73,7 @@
   }
 
   async function copyPresskit() {
-    await navigator.clipboard.writeText(PRESSKIT_TEXT);
+    await navigator.clipboard.writeText(formatShareText(PRESSKIT_TEXT));
     alert('Presskit post copied to clipboard.');
   }
 
@@ -78,7 +82,7 @@
    * @param {string} providerId
    */
   async function shareToProvider(post, providerId) {
-    const text = post.text;
+    const text = formatShareText(post.text);
     const link = post.link || LINK;
 
     switch (providerId) {
@@ -139,20 +143,6 @@
         );
         await navigator.clipboard.writeText(text);
         alert('Post text copied — paste it into your LinkedIn post.');
-        break;
-      case 'instagram':
-        await navigator.clipboard.writeText(text);
-        alert('Post text copied. Open Instagram and paste into a new post or story.');
-        break;
-      case 'youtube':
-        await navigator.clipboard.writeText(text);
-        window.open('https://www.youtube.com/upload', '_blank', 'noopener,noreferrer');
-        alert('Post text copied — paste as your video title/description on YouTube.');
-        break;
-      case 'nostr':
-        await navigator.clipboard.writeText(text);
-        window.open('https://primal.net/home', '_blank', 'noopener,noreferrer');
-        alert('Post text copied — paste it into your Nostr client.');
         break;
       default:
         break;
@@ -632,7 +622,7 @@
 
       <div class="section">
         <span class="section-label">Post that gets shared</span>
-        <pre>{PRESSKIT_TEXT}</pre>
+        <pre>{formatShareText(PRESSKIT_TEXT)}</pre>
         <p class="small">Links to <a href={LINK} target="_blank" rel="noopener noreferrer">{LINK}</a></p>
       </div>
     </div>
@@ -672,9 +662,9 @@
         <article class="post-card">
           <div class="post-body">
             <span class="post-id">{post.id}</span>
-            <p class="post-text">{post.text}</p>
+            <p class="post-text">{formatShareText(post.text)}</p>
             <div class="post-actions">
-              <button class="post-copy" type="button" on:click={() => copyPost(post.text)}>Copy text</button>
+              <button class="post-copy" type="button" on:click={() => copyPost(formatShareText(post.text))}>Copy text</button>
               <div class="share-wrap" on:click|stopPropagation>
                 <button
                   class="post-share"
