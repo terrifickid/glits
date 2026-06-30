@@ -208,7 +208,7 @@
     <h1>Share the <em>Buildathon</em></h1>
     <p class="subtitle">
       Generate & send ready-to-post media about the 40-team Global Agentic AI
-      sprint — before July 3 closes.
+      sprint. Apply now.
     </p>
 
     <div
@@ -257,10 +257,10 @@
 
     <p class="pitch">
       From fragmented islands to global scale — help 40 teams build the agentic
-      AI wave. July 3 deadline. Forward to your network.
+      AI wave. Apply now. Forward to your network.
     </p>
 
-    <p class="footer-note">Future Caribbean Buildathon • 2026</p>
+    <p class="footer-note">Future Caribbean Buildathon</p>
     </div>
   </div>
 </div>
